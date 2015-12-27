@@ -29,7 +29,7 @@ namespace Scrabble
 		private bool[] m_panelSpaceFilled = new bool[7];
 		private bool[,] m_boardSpaceFilled = new bool[15, 15];
 		private double m_tileSize = 15;
-		private Gaddag m_gaddag = new Gaddag();
+		//private Gaddag m_gaddag = new Gaddag();
 		private Random m_randomiser = null;
 		private DateTime m_messageDisplayTime = DateTime.Now;
 		private DateTime m_gameStartTime = DateTime.Now;
@@ -44,6 +44,8 @@ namespace Scrabble
 		private List<TileControl> m_playedTiles = new List<TileControl>();
 		private List<TileControl> m_panelTiles = new List<TileControl>();
 		private List<TileControl> m_computersTiles = new List<TileControl>();
+
+		private Dictionary<string, List<string>> m_wordLookup = new Dictionary<string, List<string>>();
 
 		#region Scrabble Configuration
 
@@ -115,12 +117,30 @@ namespace Scrabble
 			{
 				StartNewGame();
 			}
-			//			Task.Run(() => DetermineComputersWord());
 		}
 
 		private void GamePageRoot_SizeChanged(object sender, SizeChangedEventArgs e)
 		{
+			ResizeTiles();
+		}
 
+		private void ResizeTiles()
+		{
+			m_tileSize = ScrabbleBoard.ActualWidth / 15;
+
+			foreach (TileControl tile in m_playedTiles)
+			{
+				PlaceTileOnBoard(tile, tile.GridX, tile.GridY);
+			}
+			foreach (TileControl tile in m_currentWordTiles)
+			{
+				PlaceTileOnBoard(tile, tile.GridX, tile.GridY);
+			}
+
+			foreach (TileControl tile in m_panelTiles)
+			{
+				PlaceTileOnPanel(tile, tile.GridX);
+			}
 		}
 
 		#region Letter Dragging Functionality
@@ -579,21 +599,7 @@ namespace Scrabble
 
 		private void ScrabbleBoard_SizeChanged(object sender, SizeChangedEventArgs e)
 		{
-			m_tileSize = ScrabbleBoard.ActualWidth / 15;
-
-			foreach (TileControl tile in m_playedTiles)
-			{
-				PlaceTileOnBoard(tile, tile.GridX, tile.GridY);
-			}
-			foreach (TileControl tile in m_currentWordTiles)
-			{
-				PlaceTileOnBoard(tile, tile.GridX, tile.GridY);
-			}
-
-			foreach (TileControl tile in m_panelTiles)
-			{
-				PlaceTileOnPanel(tile, tile.GridX);
-			}
+			ResizeTiles();
 		}
 
 		private void ShuffleLettersButton_Click(object sender, RoutedEventArgs e)
@@ -614,6 +620,7 @@ namespace Scrabble
 
 		private void SwapLettersButton_Click(object sender, RoutedEventArgs e)
 		{
+			/*
 			string myLetters = string.Empty;
 			foreach (TileControl tile in m_panelTiles)
 			{
@@ -627,6 +634,7 @@ namespace Scrabble
 			{
 				possibleWords.AddRange(m_gaddag.ContainsHookWithRack(playableSpace, myLetters));
 			}
+			*/
 		}
 
 		private void RecallLettersButton_Click(object sender, RoutedEventArgs e)
@@ -756,6 +764,14 @@ namespace Scrabble
 
 		}
 
+		string Alphabetize(string s)
+		{
+			// Convert to char array, then sort and return
+			char[] a = s.ToCharArray();
+			Array.Sort(a);
+			return new string(a);
+		}
+
 		private async void ReadWords()
 		{
 			StorageFile wordsFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/Words.txt", UriKind.Absolute));
@@ -763,8 +779,26 @@ namespace Scrabble
 
 			foreach (string word in m_words)
 			{
+				string key = Alphabetize(word);
+
+				if (!m_wordLookup.ContainsKey(key))
+				{
+					List<string> words = new List<string>();
+					words.Add(word);
+					m_wordLookup.Add(key, words);
+				}
+				else
+				{
+					m_wordLookup[key].Add(word);
+				}
+			}
+
+			/*
+			foreach (string word in m_words)
+			{
 				m_gaddag.Add(word);
 			}
+			*/
 		}
 
 		void GameTimer_Tick(object sender, object e)
@@ -850,37 +884,9 @@ namespace Scrabble
 
 				foreach (string word in possibleWords)
 				{
-					bool extendsExistingWord = false;
-					string connectingLetters = string.Empty;
-
-					foreach ( string existingWord in m_allWordsPlayed)
-					{
-						if(word.Contains(existingWord))
-						{
-							connectingLetters = existingWord.Substring(0, 1);
-							extendsExistingWord = true;
-						}
-					}
-
-					if (!extendsExistingWord)
-					{
-						List<char> availableLetters = computersLetters.ToList();
-						foreach (char letter in word)
-						{
-							if (!availableLetters.Contains(letter))
-							{
-								connectingLetters += letter;
-							}
-							else
-							{
-								availableLetters.Remove(letter);
-							}
-						}
-					}
-
 					foreach (TileControl tile in m_playedTiles)
 					{
-						if (connectingLetters.Contains(tile.Letter))
+						if (word.Contains(tile.Letter))
 						{
 							int letterPosition = word.IndexOf(tile.Letter);
 							int remainingLetters = word.Length - letterPosition;
@@ -1597,20 +1603,54 @@ namespace Scrabble
 			return playableSpaces;
 		}
 
-		public List<string> FindPossibleWords(string thisWord)
+		public List<string> FindPossibleWords(string playersLetters)
 		{
 			DateTime start = DateTime.Now;
 
-			List<string> playableSpaces = GetPlayableSpaces(thisWord.Length);
+			List<string> playableSpaces = GetPlayableSpaces(playersLetters.Length);
 			List<string> possibleWords = new List<string>();
+			List<string> keysChecked = new List<string>();
 
+			// For each place that a word can be made ...
 			foreach (string playableSpace in playableSpaces)
 			{
-				foreach (string word in m_gaddag.ContainsHookWithRack(playableSpace, thisWord))
+				// Find all words using 1 to all of the players letters.
+				for (int numberOfCharacters = 1; numberOfCharacters <= playersLetters.Length; numberOfCharacters++)
 				{
-					if (!playableSpaces.Contains(word) && !possibleWords.Contains(word))
+					for (int i = 0; i <= playersLetters.Length - numberOfCharacters; i++)
 					{
-						possibleWords.Add(word);
+						// Select the first n letters
+						string testCharacters = playersLetters.Substring(i, numberOfCharacters);
+						string key = Alphabetize(playableSpace + testCharacters);
+
+						if (!keysChecked.Contains(key))
+						{
+							keysChecked.Add(key);
+							if (m_wordLookup.ContainsKey(key))
+							{
+								foreach (string actualWord in m_wordLookup[key])
+								{
+									possibleWords.Add(actualWord);
+								}
+							}
+						}
+
+						for (int j = i + numberOfCharacters; j < playersLetters.Length; j++)
+						{
+							key = Alphabetize(playableSpace + testCharacters + playersLetters.Substring(j, 1));
+
+							if (!keysChecked.Contains(key))
+							{
+								keysChecked.Add(key);
+								if (m_wordLookup.ContainsKey(key))
+								{
+									foreach (string actualWord in m_wordLookup[key])
+									{
+										possibleWords.Add(actualWord);
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1623,77 +1663,7 @@ namespace Scrabble
 			m_messageDisplayTime = DateTime.Now;
 
 			return SortByLength(possibleWords);
-			/*
-			int maximumLength = 0;
-			List<string> foundList = new List<string>();
-			Dictionary<int, List<string>> wordsBySize = new Dictionary<int, List<string>>();
 
-			foreach (string compareWord in m_words)
-			{
-				string originalWord = thisWord;
-
-				if (IsPossibleWord(thisWord, compareWord))
-				{
-					if (maximumLength < compareWord.Length)
-					{
-						maximumLength = compareWord.Length;
-					}
-
-					if (!wordsBySize.ContainsKey(compareWord.Length))
-					{
-						wordsBySize.Add(compareWord.Length, new List<string>());
-					}
-					wordsBySize[compareWord.Length].Add(compareWord);
-					//foundList.Add(compareWord);
-				}
-			}
-
-			for (int length = maximumLength; length > 0; length--)
-			{
-				if (wordsBySize.ContainsKey(length))
-				{
-					foreach (string word in wordsBySize[length])
-					{
-						foundList.Add(word);
-					}
-				}
-			}
-			
-			DateTime end = DateTime.Now;
-
-			TimeSpan duration = end.Subtract(start);
-			MessageTextBox.Text = duration.Ticks.ToString();
-			MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
-			m_messageDisplayTime = DateTime.Now;
-
-			return foundList;
-			*/
-			/*
-			char[] letterArray = thisWord.ToCharArray();
-			List<string> foundList = new List<string>();
-			List<string> listOfPossibles = new List<string>();
-			
-			foreach(string compareWord in m_words)
-			{
-				if(compareWord.IndexOfAny(letterArray) >=0)
-				{
-					listOfPossibles.Add(compareWord);
-				}
-			}
-
-			
-			foreach(string compareWord in listOfPossibles)
-			{
-				string originalWord = thisWord;
-
-				if (IsPossibleWord(thisWord, compareWord))
-				{
-					foundList.Add(compareWord);
-				}
-			}
-
-			return foundList;
-			*/
 		}
 
 		public bool IsPossibleWord(string baseWord, string compareWord)

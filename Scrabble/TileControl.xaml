@@ -10,6 +10,6 @@
     d:DesignWidth="300">
 
     <Grid>
-        <Image x:Name="LetterImage" HorizontalAlignment="Left" Margin="0" VerticalAlignment="Top" Source="Assets/A.png" ManipulationMode="All"/>
+        <Image x:Name="LetterImage" Margin="0" Source="Assets/A.png" ManipulationMode="All"/>
     </Grid>
 </UserControl>

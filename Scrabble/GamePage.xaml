@@ -26,23 +26,25 @@
             <ColumnDefinition Width="20*"/>
         </Grid.ColumnDefinitions>
 
+        <Image x:Name="ScrabbleBoard" AllowDrop="True" Margin="0,2" Grid.Row="1" Source="Assets/ScrabbleBoardWithLetterPanel.png" SizeChanged="ScrabbleBoard_SizeChanged" Loaded="ScrabbleBoard_Loaded" RenderTransformOrigin="0,0" HorizontalAlignment="Center" Grid.Column="1"/>
+
         <Viewbox Grid.ColumnSpan="3" HorizontalAlignment="Left">
             <TextBlock x:Name="pageTitle_Copy" Text="Scrabble" Margin="10,0,0,0" TextAlignment="Left" FontFamily="Times New Roman" Foreground="White"/>
         </Viewbox>
-        <Image x:Name="ScrabbleBoard" AllowDrop="True" Margin="0" Grid.Row="1" Source="Assets/ScrabbleBoardWithLetterPanel.png" SizeChanged="ScrabbleBoard_SizeChanged" Loaded="ScrabbleBoard_Loaded" RenderTransformOrigin="0,0" HorizontalAlignment="Center" Grid.Column="1"/>
         <Grid x:Name="MessageTextBoxGrid" HorizontalAlignment="Center" Margin="0,40,0,0" Grid.Row="1" VerticalAlignment="Top" Background="#FFF5DB38" Grid.Column="1">
             <TextBlock x:Name="MessageTextBox" Margin="5" TextWrapping="Wrap" Text="TextBlock" TextAlignment="Center" Foreground="#FF0A0A0A" FontSize="20"/>
         </Grid>
         <ListView x:Name="ComputersWords" Margin="20" Grid.Row="1" Background="White" Foreground="#FF1B1515"/>
         <ListView x:Name="PlayersWords" Margin="20" Grid.Row="1" Background="#FFFDFDFD" Foreground="#FF131111" Grid.Column="2"/>
 
-        <Grid Grid.Row="2" Grid.ColumnSpan="3">
+        <Grid Grid.Row="2" Grid.ColumnSpan="3" >
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
             </Grid.ColumnDefinitions>
+
             <Grid Margin="3">
                 <Grid.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
@@ -58,20 +60,22 @@
                     <ColumnDefinition Width="1*"/>
                     <ColumnDefinition Width="1*"/>
                 </Grid.ColumnDefinitions>
+
                 <Frame Margin="0" BorderBrush="White" BorderThickness="2,2,1,1">
-                    <TextBlock Margin="0" Text="Player" FontSize="14" VerticalAlignment="Center" Foreground="Black" HorizontalAlignment="Center" TextTrimming="WordEllipsis"/>
+                    <TextBlock Margin="0" Text="Player" FontSize="18" VerticalAlignment="Center" Foreground="Black" HorizontalAlignment="Center" TextTrimming="WordEllipsis"/>
                 </Frame>
                 <Frame Margin="0" BorderBrush="White" BorderThickness="1,2,2,1" Grid.Column="1">
-                    <TextBlock x:Name="PlayerScoreTextBlock" Margin="0" TextWrapping="Wrap" Text="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="Black"/>
+                    <TextBlock x:Name="PlayerScoreTextBlock" Margin="0" TextWrapping="Wrap" Text="0" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="Black"/>
                 </Frame>
                 <Frame Margin="0" BorderBrush="White" BorderThickness="2,1,1,2" Grid.Row="1">
-                    <TextBlock Margin="0,1,1,0" Text="Computer" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="Black" TextTrimming="WordEllipsis"/>
+                    <TextBlock Margin="0,1,1,0" Text="Computer" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="Black" TextTrimming="WordEllipsis"/>
                 </Frame>
                 <Frame Margin="0" BorderBrush="White" BorderThickness="1,1,2,2" Grid.Row="1" Grid.Column="1">
-                    <TextBlock x:Name="ComputerScoreTextBlock" Margin="0" TextWrapping="Wrap" Text="0" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="Black"/>
+                    <TextBlock x:Name="ComputerScoreTextBlock" Margin="0" TextWrapping="Wrap" Text="0" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="Black" />
                 </Frame>
             </Grid>
-            <Button x:Name="ShuffleLettersButton" Content="Shuffle" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" BorderThickness="2" Padding="0" Click="ShuffleLettersButton_Click" Grid.Column="1">
+
+            <Button x:Name="ShuffleLettersButton" Content="Shuffle" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" BorderThickness="2" Padding="0" Click="ShuffleLettersButton_Click" Grid.Column="1" ClickMode="Press" FontSize="32">
                 <Button.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Gold"/>
@@ -79,7 +83,8 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
-            <Button x:Name="SwapLettersButton" Content="Swap" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Padding="0" Click="SwapLettersButton_Click" Grid.Column="2">
+
+            <Button x:Name="SwapLettersButton" Content="Swap" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Padding="0" Click="SwapLettersButton_Click" Grid.Column="2" ClickMode="Press" FontSize="32">
                 <Button.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Gold"/>
@@ -87,7 +92,7 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
-            <Button x:Name="RecallLettersButton" Content="Recall" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Visibility="Collapsed" Padding="0" Click="RecallLettersButton_Click" Grid.Column="2">
+            <Button x:Name="RecallLettersButton" Content="Recall" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Visibility="Collapsed" Padding="0" Click="RecallLettersButton_Click" Grid.Column="2" ClickMode="Press" FontSize="32">
                 <Button.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Gold"/>
@@ -95,7 +100,7 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
-            <Button x:Name="PlayButton" Content="Play" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Visibility="Collapsed" Padding="0" Click="PlayButton_Click" Grid.Column="3">
+            <Button x:Name="PlayButton" Content="Play" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Visibility="Collapsed" Padding="0" Click="PlayButton_Click" Grid.Column="3" ClickMode="Press" FontSize="32">
                 <Button.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Gold"/>
@@ -103,7 +108,7 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
-            <Button x:Name="PassButton" Content="Pass" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Padding="0" Click="PassButton_Click" Grid.Column="3">
+            <Button x:Name="PassButton" Content="Pass" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Padding="0" Click="PassButton_Click" Grid.Column="3" ClickMode="Press" FontSize="32">
                 <Button.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Gold"/>
@@ -111,6 +116,9 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
+            <Viewbox HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
+            </Viewbox>
         </Grid>
+
     </Grid>
 </Page>
