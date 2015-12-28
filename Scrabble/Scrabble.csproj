@@ -96,6 +96,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="Enumerations.cs" />
+    <Compile Include="ExistingPlay.cs" />
     <Compile Include="Gaddag.cs" />
     <Compile Include="GamePage.xaml.cs">
       <DependentUpon>GamePage.xaml</DependentUpon>
@@ -137,6 +138,8 @@
     <Content Include="Assets\S.png" />
     <Content Include="Assets\ScrabbleBoardWithLetterPanel.png" />
     <Content Include="Assets\ScrabbleBoardWithLetterPanel2.png" />
+    <Content Include="Assets\ScrabbleBoardWithLetterPanelFlush.png" />
+    <Content Include="Assets\ScrabbleBoardWithLetterPanelFlushSmall.png" />
     <Content Include="Assets\T.png" />
     <Content Include="Assets\U.png" />
     <Content Include="Assets\V.png" />

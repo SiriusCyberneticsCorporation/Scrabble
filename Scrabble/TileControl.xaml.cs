@@ -1,4 +1,5 @@
 ﻿using System;
+using Windows.Foundation;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 
@@ -27,6 +28,6 @@ namespace Scrabble
 
 			string letterFile = string.Format("ms-appx:///Assets/{0}.png", Letter);
 			LetterImage.Source = new BitmapImage() { UriSource = new Uri(letterFile, UriKind.Absolute) };
-		}
+		}				
 	}
 }
