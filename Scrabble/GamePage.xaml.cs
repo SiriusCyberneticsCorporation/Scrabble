@@ -23,6 +23,8 @@ namespace Scrabble
 	/// </summary>
 	public sealed partial class GamePage : Page
 	{
+		private int m_playersScore = 0;
+		private int m_computersScore = 0;
 		private bool m_restartLastGame = false;
 		private bool m_computersWordFound = false;
 		private bool[] m_panelSpaceFilled = new bool[7];
@@ -38,6 +40,7 @@ namespace Scrabble
 		private IList<string> m_words = new List<string>();
 		private DispatcherTimer m_gameTimer = new DispatcherTimer();
 		private TileControl[,] m_boardTiles = new TileControl[15, 15];
+		private eScrabbleScores[,] m_boardScores = new eScrabbleScores[15, 15];
 		private List<TileControl> m_letterBag = new List<TileControl>();
 		private List<TileControl> m_currentWordTiles = new List<TileControl>();
 		private List<TileControl> m_playedTiles = new List<TileControl>();
@@ -87,9 +90,9 @@ namespace Scrabble
 			new ScrabbleLetterConfig() {NumberOf = 1, Letter = "Z", LetterValue = 10}/*,
 			new ScrabbleLetterConfig() {NumberOf = 2, Letter = BLANK, LetterValue = 0}*/
 		};
-
-		#endregion Scrabble Configuration
 		
+		#endregion Scrabble Configuration
+
 		public GamePage()
 		{
 			this.InitializeComponent();
@@ -98,6 +101,84 @@ namespace Scrabble
 
 			m_gameTimer.Tick += GameTimer_Tick;
 			m_gameTimer.Interval = new TimeSpan(0, 0, 1);
+
+			//-------------------------------------------------------------------------------------
+			// SET UP THE SCRABBLE BOARD SCORES
+			//-------------------------------------------------------------------------------------
+			// Start by setting every square to letter value.
+			for (int i = 0; i < 15; i++)
+			{
+				for (int j = 0; j < 15; j++)
+				{
+					m_boardScores[i, j] = eScrabbleScores.LetterValue;
+				}
+			}
+			// Place the Double Letter squares.
+			m_boardScores[3, 0] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[11, 0] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[6, 2] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[8, 2] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[0, 3] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[7, 3] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[14, 3] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[2, 6] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[6, 6] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[8, 6] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[12, 6] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[3, 7] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[11, 7] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[2, 8] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[6, 8] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[8, 8] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[12, 8] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[0, 11] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[7, 11] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[14, 11] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[6, 12] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[8, 12] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[3, 14] = eScrabbleScores.DoubleLetterValue;
+			m_boardScores[11, 14] = eScrabbleScores.DoubleLetterValue;
+			// Place Triple Letter squares.
+			m_boardScores[5, 1] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[9, 1] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[1, 5] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[5, 5] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[9, 5] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[13, 5] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[1, 9] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[5, 9] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[9, 9] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[13, 9] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[5, 13] = eScrabbleScores.TripleLetterValue;
+			m_boardScores[9, 13] = eScrabbleScores.TripleLetterValue;
+			// Place Double Word squares.
+			m_boardScores[1, 1] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[13, 1] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[2, 2] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[12, 2] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[3, 3] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[11, 3] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[4, 4] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[10, 4] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[7, 7] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[4, 10] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[10, 10] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[3, 11] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[11, 11] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[2, 12] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[12, 12] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[1, 13] = eScrabbleScores.DoubleWordValue;
+			m_boardScores[13, 13] = eScrabbleScores.DoubleWordValue;
+			// Place Triple Word squares.
+			m_boardScores[0, 0] = eScrabbleScores.TripleWordValue;
+			m_boardScores[7, 0] = eScrabbleScores.TripleWordValue;
+			m_boardScores[14, 0] = eScrabbleScores.TripleWordValue;
+			m_boardScores[0, 7] = eScrabbleScores.TripleWordValue;
+			m_boardScores[14, 7] = eScrabbleScores.TripleWordValue;
+			m_boardScores[0, 14] = eScrabbleScores.TripleWordValue;
+			m_boardScores[7, 14] = eScrabbleScores.TripleWordValue;
+			m_boardScores[14, 14] = eScrabbleScores.TripleWordValue;
+			//-------------------------------------------------------------------------------------
 
 			ReadWords();
 		}
@@ -656,7 +737,7 @@ namespace Scrabble
 			else
 			{
 				bool allWordsOk = true;
-				List<string> wordsPlayed = new List<string>(); // GetPlayedWords(true);
+				List<WordAndScore> wordsPlayed = new List<WordAndScore>();
 
 				if (m_currentWordTiles.Count > 1)
 				{
@@ -712,17 +793,17 @@ namespace Scrabble
 					// Add the only tile played.
 					playedTiles.Add(m_currentWordTiles[0]);
 
-					GetSideWordsForWordPlayedHorizontal(playedTiles, ref wordsPlayed);
-					GetSideWordsForWordPlayedVertical(playedTiles, ref wordsPlayed);
+					GetVerticalWordsForWordPlayedHorizontal(playedTiles, ref wordsPlayed);
+					GetHorizontalWordsForWordPlayedVertical(playedTiles, ref wordsPlayed);
 				}
 
-				foreach (string playedWord in wordsPlayed)
+				foreach (WordAndScore playedWord in wordsPlayed)
 				{
-					if (playedWord.Length > 0)
+					if (playedWord.Word.Length > 0)
 					{
-						if (!m_words.Contains(playedWord))
+						if (!m_words.Contains(playedWord.Word))
 						{
-							MessageTextBox.Text = "My dictionary does not contain the word '" + playedWord + "'.";
+							MessageTextBox.Text = "My dictionary does not contain the word '" + playedWord.Word + "'.";
 							MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
 							m_messageDisplayTime = DateTime.Now;
 							allWordsOk = false;
@@ -733,10 +814,16 @@ namespace Scrabble
 
 				if (allWordsOk)
 				{
-					foreach (string word in wordsPlayed)
+					int totalScore = m_currentWordTiles.Count == 7 ? 50 : 0;
+					foreach (WordAndScore playedWord in wordsPlayed)
 					{
-						m_allWordsPlayed.Add(word);
-						PlayersWords.Items.Add(word);
+						totalScore += playedWord.Score;
+						m_allWordsPlayed.Add(playedWord.Word);
+						PlayersWords.Items.Add(playedWord.Word + " - " + playedWord.Score.ToString());
+					}
+					if (wordsPlayed.Count > 1)
+					{
+						PlayersWords.Items.Add("Total Score - " + totalScore.ToString());
 					}
 					foreach (TileControl tile in m_currentWordTiles)
 					{
@@ -745,6 +832,8 @@ namespace Scrabble
 						m_boardTiles[tile.GridX, tile.GridY] = tile;
 					}
 
+					m_playersScore += totalScore;
+					PlayersScoreTextBlock.Text = m_playersScore.ToString();
 					m_currentWordTiles.Clear();
 					m_turnState = eTurnState.ComputersTurn;
 
@@ -820,6 +909,7 @@ namespace Scrabble
 				}
 				else
 				{
+					ComputersWords.Items.Add("Exchanged Tiles");
 					MessageTextBox.Text = "Computer could not find a word. Exchanging letters.";
 					MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
 					m_messageDisplayTime = DateTime.Now;
@@ -902,24 +992,31 @@ namespace Scrabble
 				m_computersWordFound = PlaceComputersFirstWord(m_computersTiles);
 			}
 			else
-			{	
+			{
 				if (possiblePlays.Count > 0)
 				{
 					PossiblePlay playToUse = possiblePlays[0];
 
-					foreach(PossiblePlay play in possiblePlays)
+					foreach (PossiblePlay play in possiblePlays)
 					{
-						if(play.TotalValue > playToUse.TotalValue)
+						if (play.TotalValue > playToUse.TotalValue)
 						{
 							playToUse = play;
 						}
 					}
 
-					foreach (string playedWord in playToUse.WordsCreated)
+					foreach (WordAndScore playedWord in playToUse.WordsCreated)
 					{
-						m_allWordsPlayed.Add(playedWord);
-						ComputersWords.Items.Add(playedWord);
+						m_allWordsPlayed.Add(playedWord.Word);
+						ComputersWords.Items.Add(playedWord.Word + " - " + playedWord.Score.ToString());
 					}
+					if (playToUse.WordsCreated.Count > 1)
+					{
+						ComputersWords.Items.Add("Total Score - " + playToUse.TotalValue.ToString());
+					}
+
+					m_computersScore += playToUse.TotalValue;
+					ComputersScoreTextBlock.Text = m_computersScore.ToString();
 
 					// If we get to here then the word should fit successfully.
 					for (int index = 0; index < playToUse.TilesToPlay.Count; index++)
@@ -1038,19 +1135,20 @@ namespace Scrabble
 			{
 				int x = 7;
 				int y = 7;
-
-				ComputersWords.Items.Add(longestWord);
+				int score = 0;
+				int wordMultiplier = 1;
 
 				for (int i = 0; i < longestWord.Length; i++)
 				{
 					string letter = longestWord.Substring(i, 1);
 					TileControl tilePlayed = null;
-
+										
 					foreach (TileControl tile in m_computersTiles)
 					{
 						if (tile.Letter == letter)
 						{
 							PlaceTileOnBoard(tile, x, y);
+							score += ScoreTilePlacement(tile, ref wordMultiplier);
 							x++;
 							tilePlayed = tile;
 							break;
@@ -1065,6 +1163,9 @@ namespace Scrabble
 						m_boardTiles[tilePlayed.GridX, tilePlayed.GridY] = tilePlayed;
 					}
 				}
+
+				score *= wordMultiplier;
+				ComputersWords.Items.Add(longestWord + " - " + score.ToString());
 
 				result = true;
 			}
@@ -1214,10 +1315,10 @@ namespace Scrabble
 			return playedTiles;
 		}
 
-		private List<string> GetPlayedWords(bool horizontal, List<TileControl> currentWordTiles)
+		private List<WordAndScore> GetPlayedWords(bool horizontal, List<TileControl> currentWordTiles)
 		{
-			string playedWord = string.Empty;
-			List<string> playedWords = new List<string>();
+			WordAndScore playedWord = null;
+			List<WordAndScore> playedWords = new List<WordAndScore>();
 			List<TileControl> playedTiles = SortCurrentWordTiles(horizontal, currentWordTiles);
 
 			if (horizontal)
@@ -1229,29 +1330,67 @@ namespace Scrabble
 				playedWord = GetMainWordPlayedVertical(playedTiles);
 			}
 
-			if (playedWord.Length > 0)
+			if (playedWord.Word.Length > 0)
 			{
 				playedWords.Add(playedWord);
 				if (horizontal)
 				{
-					GetSideWordsForWordPlayedHorizontal(playedTiles, ref playedWords);
+					GetVerticalWordsForWordPlayedHorizontal(playedTiles, ref playedWords);
 				}
 				else
 				{
-					GetSideWordsForWordPlayedVertical(playedTiles, ref playedWords);
+					GetHorizontalWordsForWordPlayedVertical(playedTiles, ref playedWords);
 				}
 			}
 
 			return playedWords;
 		}
 
-		private string GetMainWordPlayedHorizontal(List<TileControl> playedTiles)
+		private int ScoreTilePlacement(TileControl tile, ref int wordMultiplier)
+		{
+			int score = 0;
+			eScrabbleScores placeMultiplier = m_boardScores[tile.GridX, tile.GridY];
+
+			switch (placeMultiplier) 
+			{
+				case eScrabbleScores.DoubleLetterValue:
+					score = tile.LetterValue * 2;
+					break;
+				case eScrabbleScores.DoubleWordValue:
+					score = tile.LetterValue;
+					if (tile.TileStatus != eTileState.Played)
+					{
+						wordMultiplier *= 2;
+					}
+					break;
+				case eScrabbleScores.LetterValue:
+					score = tile.LetterValue;
+					break;
+				case eScrabbleScores.TripleLetterValue:
+					score = tile.LetterValue * 3;
+					break;
+				case eScrabbleScores.TripleWordValue:
+					score = tile.LetterValue;
+					if (tile.TileStatus != eTileState.Played)
+					{
+						wordMultiplier *= 3;
+					}
+					break;
+			}
+
+			return score;
+		}
+
+		private WordAndScore GetMainWordPlayedHorizontal(List<TileControl> playedTiles)
 		{
 			int index;
 			int lastX = -1;
+			int wordMultiplier = 1;
+			WordAndScore playedWord = new WordAndScore();
 
 			// Find the word that has been played.
-			string playedWord = playedTiles[0].Letter;
+			playedWord.Word = playedTiles[0].Letter;
+			playedWord.Score = ScoreTilePlacement(playedTiles[0], ref wordMultiplier);
 
 			// Prepend any letters that appear before the played word.
 			if (playedTiles[0].GridX > 0)
@@ -1259,7 +1398,8 @@ namespace Scrabble
 				int previousX = playedTiles[0].GridX - 1;
 				while (previousX >= 0 && m_boardTiles[previousX, playedTiles[0].GridY] != null)
 				{
-					playedWord = m_boardTiles[previousX, playedTiles[0].GridY].Letter + playedWord;
+					playedWord.Word = m_boardTiles[previousX, playedTiles[0].GridY].Letter + playedWord.Word;
+					playedWord.Score += ScoreTilePlacement(m_boardTiles[previousX, playedTiles[0].GridY], ref wordMultiplier);
 					previousX--;
 				}
 			}
@@ -1275,21 +1415,24 @@ namespace Scrabble
 					{
 						if (m_boardTiles[X, playedTiles[index].GridY] != null)
 						{
-							playedWord += m_boardTiles[X, playedTiles[index].GridY].Letter;
+							playedWord.Word += m_boardTiles[X, playedTiles[index].GridY].Letter;
+							playedWord.Score += ScoreTilePlacement(m_boardTiles[X, playedTiles[index].GridY], ref wordMultiplier);
 						}
 						else
 						{
 							MessageTextBox.Text = "There seems to be a gap in your word!";
 							MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
 							m_messageDisplayTime = DateTime.Now;
-							playedWord = string.Empty;
+							playedWord.Word = string.Empty;
+							playedWord.Score = 0;
 							break;
 						}
 					}
 				}
 
 				// Add the current tile.
-				playedWord += playedTiles[index].Letter;
+				playedWord.Word += playedTiles[index].Letter;
+				playedWord.Score += ScoreTilePlacement(playedTiles[index], ref wordMultiplier);
 
 				// Save the last X value;
 				lastX = playedTiles[index].GridX;
@@ -1301,21 +1444,27 @@ namespace Scrabble
 				int nextX = lastX + 1;
 				while (nextX < 15 && m_boardTiles[nextX, playedTiles[0].GridY] != null)
 				{
-					playedWord += m_boardTiles[nextX, playedTiles[0].GridY].Letter;
+					playedWord.Word += m_boardTiles[nextX, playedTiles[0].GridY].Letter;
+					playedWord.Score += ScoreTilePlacement(m_boardTiles[nextX, playedTiles[0].GridY], ref wordMultiplier);
 					nextX++;
 				}
 			}
 
+			playedWord.Score *= wordMultiplier;
+
 			return playedWord;
 		}
 
-		private string GetMainWordPlayedVertical(List<TileControl> playedTiles)
+		private WordAndScore GetMainWordPlayedVertical(List<TileControl> playedTiles)
 		{
 			int index;
 			int lastY = -1;
+			int wordMultiplier = 1;
+			WordAndScore playedWord = new WordAndScore();
 
 			// Find the word that has been played.
-			string playedWord = playedTiles[0].Letter;
+			playedWord.Word = playedTiles[0].Letter;
+			playedWord.Score = ScoreTilePlacement(playedTiles[0], ref wordMultiplier);
 
 			// Prepend any letters that appear before the played word.
 			if (playedTiles[0].GridY > 0)
@@ -1323,7 +1472,8 @@ namespace Scrabble
 				int previousY = playedTiles[0].GridY - 1;
 				while (previousY >= 0 && m_boardTiles[playedTiles[0].GridX, previousY] != null)
 				{
-					playedWord = m_boardTiles[playedTiles[0].GridX, previousY].Letter + playedWord;
+					playedWord.Word = m_boardTiles[playedTiles[0].GridX, previousY].Letter + playedWord.Word;
+					playedWord.Score += ScoreTilePlacement(m_boardTiles[playedTiles[0].GridX, previousY], ref wordMultiplier);
 					previousY--;
 				}
 			}
@@ -1339,20 +1489,23 @@ namespace Scrabble
 					{
 						if (m_boardTiles[playedTiles[index].GridX, Y] != null)
 						{
-							playedWord += m_boardTiles[playedTiles[index].GridX, Y].Letter;
+							playedWord.Word += m_boardTiles[playedTiles[index].GridX, Y].Letter;
+							playedWord.Score += ScoreTilePlacement(m_boardTiles[playedTiles[index].GridX, Y], ref wordMultiplier);
 						}
 						else
 						{
 							MessageTextBox.Text = "There seems to be a gap in your word!";
 							MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
 							m_messageDisplayTime = DateTime.Now;
-							playedWord = string.Empty;
+							playedWord.Word = string.Empty;
+							playedWord.Score = 0;
 							break;
 						}
 					}
 				}
 				// Add the current tile.
-				playedWord += playedTiles[index].Letter;
+				playedWord.Word += playedTiles[index].Letter;
+				playedWord.Score += ScoreTilePlacement(playedTiles[index], ref wordMultiplier);
 
 				// Save the last Y value;
 				lastY = playedTiles[index].GridY;
@@ -1364,118 +1517,115 @@ namespace Scrabble
 				int nextY = lastY + 1;
 				while (nextY < 15 && m_boardTiles[playedTiles[0].GridX, nextY] != null)
 				{
-					playedWord += m_boardTiles[playedTiles[0].GridX, nextY].Letter;
+					playedWord.Word += m_boardTiles[playedTiles[0].GridX, nextY].Letter;
+					playedWord.Score += ScoreTilePlacement(m_boardTiles[playedTiles[0].GridX, nextY], ref wordMultiplier);
 					nextY++;
 				}
 			}
 
+			playedWord.Score *= wordMultiplier;
+
 			return playedWord;
 		}
 
-		private void GetSideWordsForWordPlayedHorizontal(List<TileControl> playedTiles, ref List<string> playedWords)
+		private void GetVerticalWordsForWordPlayedHorizontal(List<TileControl> playedTiles, ref List<WordAndScore> playedWords)
 		{
-			foreach (TileControl tile in playedTiles)
+			for (int tileIndex = 0; tileIndex < playedTiles.Count; tileIndex++)
 			{
-				if (tile.GridY > 0 && m_boardTiles[tile.GridX, tile.GridY - 1] != null)
-				{
-					int Y = tile.GridY - 1;
-					string word = string.Empty;
+				int wordMultiplier = 1;
+				WordAndScore playedWord = new WordAndScore();
+				int X = playedTiles[tileIndex].GridX;
+				int Y = playedTiles[tileIndex].GridY;
 
+				// It there are no tile immediately above or below the current tile then skip to the next played tile.
+				if ((Y == 0 || (Y > 0 && m_boardTiles[X, Y - 1] == null)) &&
+					(Y == 14 || (Y < 14 && m_boardTiles[X, Y + 1] == null)))
+				{
+					continue;
+				}
+				// If there is a tile above the placed tile...
+				if (Y > 0 && m_boardTiles[X, Y - 1] != null)
+				{
 					// Work up the column until an empty space is found.
-					while (Y > 0 && m_boardTiles[tile.GridX, Y - 1] != null)
+					while (Y > 0 && m_boardTiles[X, Y - 1] != null)
 					{
 						Y--;
 					}
 					// Now work back down to build up the word to the played tile.
-					while (Y < 14 && m_boardTiles[tile.GridX, Y + 1] != null)
+					while (Y < 14 && m_boardTiles[X, Y] != null)
 					{
-						word += m_boardTiles[tile.GridX, Y].Letter;
+						playedWord.Word += m_boardTiles[X, Y].Letter;
+						playedWord.Score += ScoreTilePlacement(m_boardTiles[X, Y], ref wordMultiplier);
 						Y++;
-					}
-					word += tile.Letter;
-					Y++;
-					// Now check after the played tile as well.
-					while (Y < 14 && m_boardTiles[tile.GridX, Y + 1] != null)
-					{
-						word += m_boardTiles[tile.GridX, Y].Letter;
-						Y++;
-					}
-
-					if (word.Length > 0)
-					{
-						playedWords.Add(word);
 					}
 				}
-				if (tile.GridY < 14 && m_boardTiles[tile.GridX, tile.GridY + 1] != null)
+				// Now add the tile we are placing.
+				playedWord.Word += playedTiles[tileIndex].Letter;
+				playedWord.Score += ScoreTilePlacement(playedTiles[tileIndex], ref wordMultiplier);
+				Y++;
+				// Now check after the played tile as well.
+				while (Y < 14 && m_boardTiles[X, Y] != null)
 				{
-					int Y = tile.GridY + 1;
-					string word = tile.Letter;
+					playedWord.Word += m_boardTiles[X, Y].Letter;
+					playedWord.Score += ScoreTilePlacement(m_boardTiles[X, Y], ref wordMultiplier);
+					Y++;
+				}
 
-					// Work down the column until an empty space is found.
-					while (Y < 14 && m_boardTiles[tile.GridX, Y] != null)
-					{
-						word += m_boardTiles[tile.GridX, Y].Letter;
-						Y++;
-					}
-
-					if (word.Length > 0)
-					{
-						playedWords.Add(word);
-					}
+				if (playedWord.Word.Length > 0)
+				{
+					playedWord.Score *= wordMultiplier;
+					playedWords.Add(playedWord);
 				}
 			}
 		}
 
-		private void GetSideWordsForWordPlayedVertical(List<TileControl> playedTiles, ref List<string> playedWords)
+		private void GetHorizontalWordsForWordPlayedVertical(List<TileControl> playedTiles, ref List<WordAndScore> playedWords)
 		{
-			foreach (TileControl tile in playedTiles)
+			for (int tileIndex = 0; tileIndex < playedTiles.Count; tileIndex++)
 			{
-				if (tile.GridX > 0 && m_boardTiles[tile.GridX - 1, tile.GridY] != null)
-				{
-					int X = tile.GridX - 1;
-					string word = string.Empty;
+				int wordMultiplier = 1;
+				WordAndScore playedWord = new WordAndScore();
+				int X = playedTiles[tileIndex].GridX;
+				int Y = playedTiles[tileIndex].GridY;
 
+				// It there are no tile immediately above or below the current tile then skip to the next played tile.
+				if ((X == 0 || (X > 0 && m_boardTiles[X - 1, Y] == null)) &&
+					(X == 14 || (X < 14 && m_boardTiles[X + 1, Y] == null)))
+				{
+					continue;
+				}
+
+				if (X > 0 && m_boardTiles[X - 1, Y] != null)
+				{
 					// Work back along the row until an empty space is found.
-					while (X > 0 && m_boardTiles[X - 1, tile.GridY] != null)
+					while (X > 0 && m_boardTiles[X - 1, Y] != null)
 					{
 						X--;
 					}
 					// Now work forward to build up the word to the played tile.
-					while (X < 14 && m_boardTiles[X, tile.GridY] != null)
+					while (X < 14 && m_boardTiles[X, Y] != null)
 					{
-						word += m_boardTiles[X, tile.GridY].Letter;
+						playedWord.Word += m_boardTiles[X, Y].Letter;
+						playedWord.Score += ScoreTilePlacement(m_boardTiles[X, Y], ref wordMultiplier);
 						X++;
-					}
-					word += tile.Letter;
-					X++;
-					// Now check after the played tile as well.
-					while (X < 14 && m_boardTiles[X, tile.GridY] != null)
-					{
-						word += m_boardTiles[X, tile.GridY].Letter;
-						X++;
-					}
-
-					if (word.Length > 0)
-					{
-						playedWords.Add(word);
 					}
 				}
-				if (tile.GridX < 14 && m_boardTiles[tile.GridX + 1, tile.GridY] != null)
+				// Now add the tile we are placing.
+				playedWord.Word += playedTiles[tileIndex].Letter;
+				playedWord.Score += ScoreTilePlacement(playedTiles[tileIndex], ref wordMultiplier);
+				X++;
+				// Now check after the played tile as well.
+				while (X < 14 && m_boardTiles[X, Y] != null)
 				{
-					int X = tile.GridX + 1;
-					string word = tile.Letter;
+					playedWord.Word += m_boardTiles[X, Y].Letter;
+					playedWord.Score += ScoreTilePlacement(m_boardTiles[X, Y], ref wordMultiplier);
+					X++;
+				}
 
-					// Work along the row until an empty space is found.
-					while (X < 14 && m_boardTiles[X, tile.GridY] != null)
-					{
-						word += m_boardTiles[X, tile.GridY].Letter;
-						X++;
-					}
-
-					if (word.Length > 0)
-					{
-						playedWords.Add(word);
-					}
+				if (playedWord.Word.Length > 0)
+				{
+					playedWord.Score *= wordMultiplier;
+					playedWords.Add(playedWord);
 				}
 			}
 		}
@@ -1605,17 +1755,19 @@ namespace Scrabble
 									{
 										for(int i = 0; i < indexOfExistingPlay; i++)
 										{
-											if(existing.StartTile.GridX - indexOfExistingPlay + i < 0 ||
-												existing.StartTile.GridX - indexOfExistingPlay + i > 14)
+											int X = existing.StartTile.GridX - indexOfExistingPlay + i;
+											int Y = existing.StartTile.GridY;
+
+											if (X < 0 || X > 14 || m_boardTiles[X,Y] != null)
 											{
 												wordFits = false;
 												break;
 											}
-											tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX - indexOfExistingPlay + i;
-											tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY;
 
-											play.XValues.Add(tilesToPlay[tilesIndex].GridX);
-											play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+											tilesToPlay[tilesIndex].GridX = X;
+											tilesToPlay[tilesIndex].GridY = Y;
+											play.XValues.Add(X);
+											play.YValues.Add(Y);
 
 											tilesIndex++;
 										}
@@ -1623,17 +1775,18 @@ namespace Scrabble
 										{
 											for (int i = tilesIndex; i < tilesToPlay.Count; i++)
 											{
-												if (existing.StartTile.GridX + existing.ExistingLetters.Length + i < 0 ||
-													existing.StartTile.GridX + existing.ExistingLetters.Length + i > 14)
+												int X = existing.StartTile.GridX + existing.ExistingLetters.Length - indexOfExistingPlay + i;
+												int Y = existing.StartTile.GridY;
+
+												if (X < 0 || X > 14 || m_boardTiles[X, Y] != null)
 												{
 													wordFits = false;
 													break;
 												}
-												tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX + existing.ExistingLetters.Length - indexOfExistingPlay + i;
-												tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY;
-
-												play.XValues.Add(tilesToPlay[tilesIndex].GridX);
-												play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+												tilesToPlay[tilesIndex].GridX = X;
+												tilesToPlay[tilesIndex].GridY = Y;
+												play.XValues.Add(X);
+												play.YValues.Add(Y);
 
 												tilesIndex++;
 											}
@@ -1643,17 +1796,18 @@ namespace Scrabble
 									{
 										for (int i = 0; i < indexOfExistingPlay; i++)
 										{
-											if (existing.StartTile.GridY - indexOfExistingPlay + i < 0 ||
-												existing.StartTile.GridY - indexOfExistingPlay + i > 14)
+											int X = existing.StartTile.GridX;
+											int Y = existing.StartTile.GridY - indexOfExistingPlay + i;
+
+											if (X < 0 || X > 14 || m_boardTiles[X, Y] != null)
 											{
 												wordFits = false;
 												break;
 											}
-											tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX;
-											tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY - indexOfExistingPlay + i;
-
-											play.XValues.Add(tilesToPlay[tilesIndex].GridX);
-											play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+											tilesToPlay[tilesIndex].GridX = X;
+											tilesToPlay[tilesIndex].GridY = Y;
+											play.XValues.Add(X);
+											play.YValues.Add(Y);
 
 											tilesIndex++;
 										}
@@ -1661,17 +1815,18 @@ namespace Scrabble
 										{
 											for (int i = tilesIndex; i < tilesToPlay.Count; i++)
 											{
-												if (existing.StartTile.GridY + existing.ExistingLetters.Length + i < 0 ||
-													existing.StartTile.GridY + existing.ExistingLetters.Length + i > 14)
+												int X = existing.StartTile.GridX;
+												int Y = existing.StartTile.GridY + existing.ExistingLetters.Length - indexOfExistingPlay + i;
+
+												if (X < 0 || X > 14 || m_boardTiles[X, Y] != null)
 												{
 													wordFits = false;
 													break;
 												}
-												tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX;
-												tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY + existing.ExistingLetters.Length - indexOfExistingPlay + i;
-
-												play.XValues.Add(tilesToPlay[tilesIndex].GridX);
-												play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+												tilesToPlay[tilesIndex].GridX = X;
+												tilesToPlay[tilesIndex].GridY = Y;
+												play.XValues.Add(X);
+												play.YValues.Add(Y);
 
 												tilesIndex++;
 											}
@@ -1681,25 +1836,27 @@ namespace Scrabble
 									if (wordFits)
 									{
 										// Check that all words created by the placement of this word are valid.
-										List<string> wordsPlayed = GetPlayedWords(existing.Horizontal, tilesToPlay);
+										List<WordAndScore> wordsPlayed = GetPlayedWords(existing.Horizontal, tilesToPlay);
 
+										int totalScore = tilesToPlay.Count == 7 ? 50 : 0;
 										bool allWordsOk = true;
-										foreach (string playedWord in wordsPlayed)
+										foreach (WordAndScore playedWord in wordsPlayed)
 										{
-											if (playedWord.Length > 0)
+											if (playedWord.Word.Length > 0)
 											{
-												if (!m_words.Contains(playedWord))
+												if (!m_words.Contains(playedWord.Word))
 												{
 													allWordsOk = false;
 													break;
 												}
+												totalScore += playedWord.Score;
 											}
 										}
 										if (allWordsOk)
 										{
 											play.TilesToPlay = tilesToPlay;
 											play.WordsCreated = wordsPlayed;
-											play.TotalValue = actualWord.Length * wordsPlayed.Count;
+											play.TotalValue = totalScore;
 											possiblePlays.Add(play);
 										}
 									}

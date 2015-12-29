@@ -109,6 +109,7 @@
     <Compile Include="TileControl.xaml.cs">
       <DependentUpon>TileControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="WordAndScore.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">

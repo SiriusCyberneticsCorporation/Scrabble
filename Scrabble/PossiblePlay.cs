@@ -13,7 +13,7 @@ namespace Scrabble
 		public ExistingPlay Interaction;
 		public List<int> XValues = new List<int>();
 		public List<int> YValues = new List<int>();
-		public List<string> WordsCreated;
+		public List<WordAndScore> WordsCreated;
 		public List<TileControl> TilesToPlay;
 	}
 }

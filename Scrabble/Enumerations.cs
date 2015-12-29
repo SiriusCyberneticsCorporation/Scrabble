@@ -24,4 +24,12 @@ namespace Scrabble
 		GameOver,
 	}
 
+	public enum eScrabbleScores
+	{
+		LetterValue,
+		DoubleLetterValue,
+		TripleLetterValue,
+		DoubleWordValue,
+		TripleWordValue,
+	}
 }
