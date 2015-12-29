@@ -24,7 +24,6 @@ namespace Scrabble
 	public sealed partial class GamePage : Page
 	{
 		private bool m_restartLastGame = false;
-		private bool m_firstWord = false;
 		private bool m_computersWordFound = false;
 		private bool[] m_panelSpaceFilled = new bool[7];
 		private bool[,] m_boardSpaceFilled = new bool[15, 15];
@@ -746,7 +745,6 @@ namespace Scrabble
 						m_boardTiles[tile.GridX, tile.GridY] = tile;
 					}
 
-					m_firstWord = false;
 					m_currentWordTiles.Clear();
 					m_turnState = eTurnState.ComputersTurn;
 
@@ -805,13 +803,6 @@ namespace Scrabble
 					m_wordLookup[key].Add(word);
 				}
 			}
-
-			/*
-			foreach (string word in m_words)
-			{
-				m_gaddag.Add(word);
-			}
-			*/
 		}
 
 		void GameTimer_Tick(object sender, object e)
@@ -899,152 +890,53 @@ namespace Scrabble
 
 		private bool DetermineComputersWord()
 		{
+			DateTime start = DateTime.Now;
+
 			m_computersWordFound = false;
 
-			string computersLetters = "";
+			List<ExistingPlay> playableSpaces = GetPlayableSpaces(m_computersTiles.Count);			
+			List<PossiblePlay> possiblePlays = FindPossiblePlays(m_computersTiles, playableSpaces);
 
-			foreach (TileControl tile in m_computersTiles)
+			if (playableSpaces.Count == 0)
 			{
-				if (tile.Letter != BLANK)
-				{
-					computersLetters += tile.Letter;
-				}
-			}
-
-#if DEBUG
-			ComputerTextBlock.Text = computersLetters;
-#endif
-
-			List<string> existingPlays = new List<string>();
-			Dictionary<TileControl, List<string>> playableSpaces = GetPlayableSpaces(computersLetters.Length);
-
-			foreach(TileControl startTile in playableSpaces.Keys)
-			{
-				foreach(string word in playableSpaces[startTile])
-				{
-					existingPlays.Add(word);
-				}
-			}
-			if (existingPlays.Count == 0)
-			{
-				existingPlays.Add("");
-			}
-
-			Dictionary<string, TileControl> possiblePlays = FindPossiblePlays(computersLetters, playableSpaces);
-
-			if (m_firstWord)
-			{
-				m_firstWord = false;
-				//List<string> possibleWords = FindPossibleWords(computersLetters, existingPlays);
-				//m_computersWordFound = PlaceComputersFirstWord(possibleWords);
-				m_computersWordFound = PlaceComputersFirstWord(possiblePlays);
+				m_computersWordFound = PlaceComputersFirstWord(m_computersTiles);
 			}
 			else
-			{
-				m_computersWordFound = PlaceComputersWord(possiblePlays);
-				/*
-				List<string> possibleWords = FindPossibleWords(computersLetters, SortByLength(existingPlays));
-
-				// Now that we have a list of possible words we need to find out which ones will fit on the 
-				// scrabble grid with all of the other words.
-				foreach (string word in possibleWords)
+			{	
+				if (possiblePlays.Count > 0)
 				{
-					// For each word 
-					foreach (string existingPlay in existingPlays)
+					PossiblePlay playToUse = possiblePlays[0];
+
+					foreach(PossiblePlay play in possiblePlays)
 					{
-						if (word.Contains(existingPlay))
+						if(play.TotalValue > playToUse.TotalValue)
 						{
-							List<int> indeciseOfExistingPlay = IndicesOfStringInString(word, existingPlay);
-
-							foreach (int indexOfExistingPlay in indeciseOfExistingPlay)
-							{
-								bool haveRequiredLetters = true;
-								string remainder = word.Substring(0, indexOfExistingPlay) + word.Substring(indexOfExistingPlay + existingPlay.Length);
-								List<char> availableLetters = computersLetters.ToList();
-
-								foreach (char letter in remainder)
-								{
-									if (!availableLetters.Contains(letter))
-									{
-										haveRequiredLetters = false;
-									}
-									availableLetters.Remove(letter);
-								}
-								if (!haveRequiredLetters)
-								{
-									continue;
-								}
-
-								foreach (TileControl startTile in playableSpaces.Keys)
-								{
-									if (playableSpaces[startTile].Contains(existingPlay))
-									{
-										if (existingPlay.Length == 1)
-										{
-											if (startTile.GridX + 1 < 15 && m_boardTiles[startTile.GridX + 1, startTile.GridY] == null)
-											{
-#if DEBUG
-												ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-												if (TryToPlaceComputersWord(word, startTile.GridX - indexOfExistingPlay, startTile.GridY, true))
-												{
-													m_computersWordFound = true;
-													break;
-												}
-											}
-											else
-											{
-#if DEBUG
-												ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-												if (TryToPlaceComputersWord(word, startTile.GridX, startTile.GridY - indexOfExistingPlay, false))
-												{
-													m_computersWordFound = true;
-													break;
-												}
-											}
-										}
-										else if (startTile.GridX + 1 < 15 && m_boardTiles[startTile.GridX + 1, startTile.GridY] != null &&
-													m_boardTiles[startTile.GridX + 1, startTile.GridY].Letter[0] == existingPlay[1])
-										{
-#if DEBUG
-											ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-											if (TryToPlaceComputersWord(word, startTile.GridX - indexOfExistingPlay, startTile.GridY, true))
-											{
-												m_computersWordFound = true;
-												break;
-											}
-										}
-										else if (startTile.GridY + 1 < 15 && m_boardTiles[startTile.GridX, startTile.GridY + 1] != null &&
-													m_boardTiles[startTile.GridX, startTile.GridY + 1].Letter[0] == existingPlay[1])
-										{
-#if DEBUG
-											ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-											if (TryToPlaceComputersWord(word, startTile.GridX, startTile.GridY - indexOfExistingPlay, false))
-											{
-												m_computersWordFound = true;
-												break;
-											}
-										}
-									}
-								}
-							}
-						}
-
-						if (m_computersWordFound)
-						{
-							break;
+							playToUse = play;
 						}
 					}
-					
-					if (m_computersWordFound)
+
+					foreach (string playedWord in playToUse.WordsCreated)
 					{
-						break;
-					}					
+						m_allWordsPlayed.Add(playedWord);
+						ComputersWords.Items.Add(playedWord);
+					}
+
+					// If we get to here then the word should fit successfully.
+					for (int index = 0; index < playToUse.TilesToPlay.Count; index++)
+					{
+						TileControl tile = playToUse.TilesToPlay[index];
+						PlaceTileOnBoard(tile, playToUse.XValues[index], playToUse.YValues[index]);
+						m_computersTiles.Remove(tile);
+						tile.TileStatus = eTileState.Played;
+						m_playedTiles.Add(tile);
+						m_boardTiles[tile.GridX, tile.GridY] = tile;
+					}
+					m_computersWordFound = true;
 				}
-				*/
+				else
+				{
+					m_computersWordFound = false;
+				}
 			}
 
 			for (int i = 7 - m_computersTiles.Count; i > 0; i--)
@@ -1059,15 +951,82 @@ namespace Scrabble
 				m_letterBag.RemoveAt(nextLetter);
 			}
 
+			DateTime end = DateTime.Now;
+
+			TimeSpan duration = end.Subtract(start);
+			MessageTextBox.Text = duration.Ticks.ToString();
+			MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+			m_messageDisplayTime = DateTime.Now;
+
 			return m_computersWordFound;
 		}
 
-		private bool PlaceComputersFirstWord(Dictionary<string, TileControl> possiblePlays)
+		public List<string> FindPossibleWords(string letters)
+		{
+			List<string> possibleWords = new List<string>();
+			List<string> keysChecked = new List<string>();
+
+			// Find all words using 1 to all of the players letters.
+			for (int numberOfCharacters = 1; numberOfCharacters <= letters.Length; numberOfCharacters++)
+			{
+				for (int i = 0; i <= letters.Length - numberOfCharacters; i++)
+				{
+					// Select the first n letters
+					string testCharacters = letters.Substring(i, numberOfCharacters);
+					string key = SortLetters(testCharacters);
+
+					// If the first n letters make up valid words then add them to the list.
+					if (!keysChecked.Contains(key))
+					{
+						keysChecked.Add(key);
+						if (m_wordLookup.ContainsKey(key))
+						{
+							foreach (string actualWord in m_wordLookup[key])
+							{
+								possibleWords.Add(actualWord);
+							}
+						}
+					}
+
+					// Now add each of the remaining letters in turn and check to see if that makes a word.
+					for (int j = i + numberOfCharacters; j < letters.Length; j++)
+					{
+						key = SortLetters(testCharacters + letters.Substring(j, 1));
+
+						if (!keysChecked.Contains(key))
+						{
+							keysChecked.Add(key);
+							if (m_wordLookup.ContainsKey(key))
+							{
+								foreach (string actualWord in m_wordLookup[key])
+								{
+									possibleWords.Add(actualWord);
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Sort all words (longest first) and return the list.
+			return SortByLength(possibleWords);
+		}
+
+		private bool PlaceComputersFirstWord(List<TileControl> tiles)
 		{
 			bool result = false;
-			string longestWord = "";
+			string letters = string.Empty;
+			string longestWord = string.Empty;
 
-			foreach (string word in possiblePlays.Keys)
+			foreach(TileControl tile in tiles)
+			{
+				if (tile.Letter != BLANK)       // TODO!!
+				{
+					letters += tile.Letter;
+				}
+			}
+
+			foreach (string word in FindPossibleWords(letters))
 			{
 				if (longestWord.Length < word.Length)
 				{
@@ -1112,347 +1071,7 @@ namespace Scrabble
 
 			return result;
 		}
-		private bool PlaceComputersWord(Dictionary<string, TileControl> possiblePlays)
-		{
-			// Now that we have a list of possible words we need to find out which ones will fit on the 
-			// scrabble grid with all of the other words.
-			foreach (string word in possiblePlays.Keys)
-			{
-				TileControl startTile = possiblePlays[word];
-
-				if (startTile.GridX + 1 < 15 && m_boardTiles[startTile.GridX + 1, startTile.GridY] == null)
-				{
-#if DEBUG
-					ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-					if (TryToPlaceComputersWord(word, startTile.GridX - indexOfExistingPlay, startTile.GridY, true))
-					{
-						m_computersWordFound = true;
-						break;
-					}
-				}
-				else
-				{
-#if DEBUG
-					ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-					if (TryToPlaceComputersWord(word, startTile.GridX, startTile.GridY - indexOfExistingPlay, false))
-					{
-						m_computersWordFound = true;
-						break;
-					}
-				}
-			
-				else if (startTile.GridX + 1 < 15 && m_boardTiles[startTile.GridX + 1, startTile.GridY] != null &&
-						 m_boardTiles[startTile.GridX + 1, startTile.GridY].Letter[0] == existingPlay[1])
-				{
-#if DEBUG
-					ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-					if (TryToPlaceComputersWord(word, startTile.GridX - indexOfExistingPlay, startTile.GridY, true))
-					{
-						m_computersWordFound = true;
-						break;
-					}
-				}
-				else if (startTile.GridY + 1 < 15 && m_boardTiles[startTile.GridX, startTile.GridY + 1] != null &&
-							m_boardTiles[startTile.GridX, startTile.GridY + 1].Letter[0] == existingPlay[1])
-				{
-#if DEBUG
-					ComputerTextBlock.Text = computersLetters + " - " + word;
-#endif
-					if (TryToPlaceComputersWord(word, startTile.GridX, startTile.GridY - indexOfExistingPlay, false))
-					{
-						m_computersWordFound = true;
-						break;
-					}
-				}
-			}
-								
-		/*					
-						
-					
-
-					if (m_computersWordFound)
-					{
-						break;
-					}
-				}
-
-				if (longestWord.Length > 0)
-			{
-				int x = 7;
-				int y = 7;
-
-				ComputersWords.Items.Add(longestWord);
-
-				for (int i = 0; i < longestWord.Length; i++)
-				{
-					string letter = longestWord.Substring(i, 1);
-					TileControl tilePlayed = null;
-
-					foreach (TileControl tile in m_computersTiles)
-					{
-						if (tile.Letter == letter)
-						{
-							PlaceTileOnBoard(tile, x, y);
-							x++;
-							tilePlayed = tile;
-							break;
-						}
-					}
-
-					if (tilePlayed != null)
-					{
-						m_computersTiles.Remove(tilePlayed);
-						tilePlayed.TileStatus = eTileState.Played;
-						m_playedTiles.Add(tilePlayed);
-						m_boardTiles[tilePlayed.GridX, tilePlayed.GridY] = tilePlayed;
-					}
-				}
-
-				result = true;
-			}
-	*/
-			return true;
-		}
-
-		private bool PlaceComputersFirstWord(List<string> possibleWords)
-		{
-			bool result = false;
-			string longestWord = "";
-
-			foreach (string word in possibleWords)
-			{
-				if (longestWord.Length < word.Length)
-				{
-					longestWord = word;
-				}
-			}
-
-			if (longestWord.Length > 0)
-			{
-				int x = 7;
-				int y = 7;
-
-				ComputersWords.Items.Add(longestWord);
-
-				for (int i = 0; i < longestWord.Length; i++)
-				{
-					string letter = longestWord.Substring(i, 1);
-					TileControl tilePlayed = null;
-
-					foreach (TileControl tile in m_computersTiles)
-					{
-						if (tile.Letter == letter)
-						{
-							PlaceTileOnBoard(tile, x, y);
-							x++;
-							tilePlayed = tile;
-							break;
-						}
-					}
-
-					if (tilePlayed != null)
-					{
-						m_computersTiles.Remove(tilePlayed);
-						tilePlayed.TileStatus = eTileState.Played;
-						m_playedTiles.Add(tilePlayed);
-						m_boardTiles[tilePlayed.GridX, tilePlayed.GridY] = tilePlayed;
-					}
-				}
-
-				result = true;
-			}
-
-			return result;
-		}
-
-		private bool TryToPlaceComputersWord(string word, int startX, int startY, bool horizontal)
-		{
-			int index = 0;
-			int existingTiles = 0;
-			List<TileControl> computersWordTiles = new List<TileControl>();
-
-			if(startX < 0 || startY < 0)
-			{
-				return false;
-			}
-
-			if (horizontal)
-			{
-				bool exitFunction = false;
-
-				if (startX + word.Length >= 15)
-				{
-					return false;
-				}
-
-				for (int X = startX; X < 15 && X - startX < word.Length; X++)
-				{
-					// If a letter is encountered that does not fit the word then it does not fit.
-					if (m_boardTiles[X, startY] != null && !word.Contains(m_boardTiles[X, startY].Letter))
-					{
-						exitFunction = true;
-						break;
-					}
-					else if(m_boardTiles[X, startY] == null)
-					{
-						for (int i = 0; i < m_computersTiles.Count; i++)
-						{
-							TileControl tile = m_computersTiles[i];
-
-							if (tile.Letter[0] == word[index])
-							{
-								tile.GridX = X;
-								tile.GridY = startY;
-								computersWordTiles.Add(tile);
-								m_computersTiles.Remove(tile);
-								break;
-							}
-						}
-					}
-					else
-					{
-						existingTiles++;
-					}
-					index++;
-				}
-				if(exitFunction)
-				{
-					foreach(TileControl tile in computersWordTiles)
-					{
-						m_computersTiles.Add(tile);
-					}
-				}
-			}
-			else
-			{
-				bool exitFunction = false;
-
-				if (startY + word.Length >= 15)
-				{
-					return false;
-				}
-
-				for (int Y = startY; Y < 15 && Y - startY < word.Length; Y++)
-				{
-					// If a letter is encountered that does not fit the word then it does not fit.
-					if (m_boardTiles[startX, Y] != null && !word.Contains(m_boardTiles[startX, Y].Letter))
-					{
-						exitFunction = true;
-						break;
-					}
-					else if (m_boardTiles[startX, Y] == null)
-					{
-						for (int i = 0; i < m_computersTiles.Count; i++)
-						{
-							TileControl tile = m_computersTiles[i];
-
-							if (tile.Letter[0] == word[index])
-							{
-								tile.GridX = startX;
-								tile.GridY = Y;
-								computersWordTiles.Add(tile);
-								m_computersTiles.Remove(tile);
-								break;
-							}
-						}
-					}
-					else
-					{
-						existingTiles++;
-					}
-					index++;
-				}
-				if (exitFunction)
-				{
-					foreach (TileControl tile in computersWordTiles)
-					{
-						m_computersTiles.Add(tile);
-					}
-				}
-			}
-
-			if (computersWordTiles.Count == 0)
-			{
-				return false;
-			}
-
-			if (computersWordTiles.Count + existingTiles != word.Length)
-			{
-				foreach (TileControl tile in computersWordTiles)
-				{
-					m_computersTiles.Add(tile);
-				}
-
-				return false;
-			}
-
-			// Check that all words created by the placement of this word are valid.
-			List<string> wordsPlayed = GetPlayedWords(horizontal, computersWordTiles);
-
-			foreach (string playedWord in wordsPlayed)
-			{
-				if (playedWord.Length > 0)
-				{
-					if (!m_words.Contains(playedWord))
-					{
-						foreach (TileControl tile in computersWordTiles)
-						{
-							m_computersTiles.Add(tile);
-						}
-
-						return false;
-					}
-				}
-			}
-
-			foreach (string playedWord in wordsPlayed)
-			{
-				m_allWordsPlayed.Add(playedWord);
-				ComputersWords.Items.Add(playedWord);
-			}
-
-			// If we get to here then the word should fit successfully.
-			foreach (char letter in word)
-			{
-				if (m_boardTiles[startX, startY] == null)
-				{
-					TileControl tilePlayed = null;
-
-					foreach (TileControl tile in computersWordTiles)
-					{
-						if (tile.Letter == letter.ToString())
-						{
-							PlaceTileOnBoard(tile, startX, startY);
-							tilePlayed = tile;
-							break;
-						}
-					}
-
-					if (tilePlayed != null)
-					{
-						computersWordTiles.Remove(tilePlayed);
-						tilePlayed.TileStatus = eTileState.Played;
-						m_playedTiles.Add(tilePlayed);
-						m_boardTiles[tilePlayed.GridX, tilePlayed.GridY] = tilePlayed;
-					}
-				}
-				if (horizontal)
-				{
-					startX++;
-				}
-				else
-				{
-					startY++;
-				}
-			}
-			return true;
-		}
-
-
-
+		
 		private void FillLetterBag()
 		{
 			m_letterBag.Clear();
@@ -1522,7 +1141,6 @@ namespace Scrabble
 				m_messageDisplayTime = DateTime.Now;
 			}
 
-			m_firstWord = true;
 			m_gameStartTime = DateTime.Now;
 			m_gameTimer.Start();
 		}
@@ -1768,15 +1386,25 @@ namespace Scrabble
 					{
 						Y--;
 					}
-					// Now work back down to build up the word.
+					// Now work back down to build up the word to the played tile.
 					while (Y < 14 && m_boardTiles[tile.GridX, Y + 1] != null)
 					{
 						word += m_boardTiles[tile.GridX, Y].Letter;
 						Y++;
 					}
 					word += tile.Letter;
+					Y++;
+					// Now check after the played tile as well.
+					while (Y < 14 && m_boardTiles[tile.GridX, Y + 1] != null)
+					{
+						word += m_boardTiles[tile.GridX, Y].Letter;
+						Y++;
+					}
 
-					playedWords.Add(word);
+					if (word.Length > 0)
+					{
+						playedWords.Add(word);
+					}
 				}
 				if (tile.GridY < 14 && m_boardTiles[tile.GridX, tile.GridY + 1] != null)
 				{
@@ -1790,7 +1418,10 @@ namespace Scrabble
 						Y++;
 					}
 
-					playedWords.Add(word);
+					if (word.Length > 0)
+					{
+						playedWords.Add(word);
+					}
 				}
 			}
 		}
@@ -1809,15 +1440,25 @@ namespace Scrabble
 					{
 						X--;
 					}
-					// Now work forward to build up the word.
+					// Now work forward to build up the word to the played tile.
 					while (X < 14 && m_boardTiles[X, tile.GridY] != null)
 					{
 						word += m_boardTiles[X, tile.GridY].Letter;
 						X++;
 					}
 					word += tile.Letter;
+					X++;
+					// Now check after the played tile as well.
+					while (X < 14 && m_boardTiles[X, tile.GridY] != null)
+					{
+						word += m_boardTiles[X, tile.GridY].Letter;
+						X++;
+					}
 
-					playedWords.Add(word);
+					if (word.Length > 0)
+					{
+						playedWords.Add(word);
+					}
 				}
 				if (tile.GridX < 14 && m_boardTiles[tile.GridX + 1, tile.GridY] != null)
 				{
@@ -1831,216 +1472,84 @@ namespace Scrabble
 						X++;
 					}
 
-					playedWords.Add(word);
+					if (word.Length > 0)
+					{
+						playedWords.Add(word);
+					}
 				}
 			}
 		}
 
-		public Dictionary<ExistingPlay, List<string>> GetPlayableSpaces(int maxLetters)
+		public List<ExistingPlay> GetPlayableSpaces(int maxLetters)
 		{
-			ExistingPlay startTile = null;
-			Dictionary<ExistingPlay, List<string>> playableSpaces = new Dictionary<ExistingPlay, List<string>>();
-			Dictionary<ExistingPlay, List<string>> horizontalSpaces = new Dictionary<ExistingPlay, List<string>>();
-			Dictionary<ExistingPlay, List<string>> verticalSpaces = new Dictionary<ExistingPlay, List<string>>();
+			ExistingPlay currentPlay = null;
+			List<ExistingPlay> playableSpaces = new List<ExistingPlay>();
 
 			// Find all playable spaces across the board.
 			for (int y = 0; y < 15; y++)
 			{
-				startTile = null;
+				currentPlay = null;
 				for (int x = 0; x < 15; x++)
 				{
 					if (m_boardTiles[x, y] != null)
 					{
-						if (startTile == null)
+						if (currentPlay == null)
 						{
-							startTile = new ExistingPlay() { StartTile = m_boardTiles[x, y], Horizontal = true };
+							currentPlay = new ExistingPlay() { StartTile = m_boardTiles[x, y], Horizontal = true };
+							playableSpaces.Add(currentPlay);
 						}
-						if (!horizontalSpaces.ContainsKey(startTile))
-						{
-							List<string> letters = new List<string>();
-							letters.Add(m_boardTiles[x, y].Letter);
-							horizontalSpaces.Add(startTile, letters);
-						}
-						else
-						{
-							if(horizontalSpaces[startTile].Count == 1)
-							{
-								horizontalSpaces[startTile].Add(horizontalSpaces[startTile][0]);
-							}
-							horizontalSpaces[startTile][1] += m_boardTiles[x, y].Letter;
-						}
+						currentPlay.ExistingLetters += m_boardTiles[x, y].Letter;
 					}
 					else 
 					{
-						startTile = null;
+						currentPlay = null;
 					}
 				}
 			}
 
 			for (int x = 0; x < 15; x++)
 			{
-				startTile = null;
+				currentPlay = null;
 				for (int y = 0; y < 15; y++)
 				{
 					if (m_boardTiles[x, y] != null)
 					{
-						if (startTile == null)
+						if (currentPlay == null)
 						{
-							startTile = new ExistingPlay() { StartTile = m_boardTiles[x, y], Horizontal = false };
+							currentPlay = new ExistingPlay() { StartTile = m_boardTiles[x, y], Horizontal = false };
+							playableSpaces.Add(currentPlay);
 						}
-						if (!verticalSpaces.ContainsKey(startTile))
-						{
-							List<string> letters = new List<string>();
-							letters.Add(m_boardTiles[x, y].Letter);
-							verticalSpaces.Add(startTile, letters);
-						}
-						else
-						{
-							if (verticalSpaces[startTile].Count == 1)
-							{
-								verticalSpaces[startTile].Add(verticalSpaces[startTile][0]);
-							}
-							verticalSpaces[startTile][1] += m_boardTiles[x, y].Letter;
-						}
+						currentPlay.ExistingLetters += m_boardTiles[x, y].Letter;
 					}
 					else
 					{
-						startTile = null;
+						currentPlay = null;
 					}
 				}
 			}
-
-			foreach (ExistingPlay play in horizontalSpaces.Keys)
-			{
-				foreach (string word in horizontalSpaces[play])
-				{
-					TileControl tile = play.StartTile;
-					// If a single letter has a letter both horizontally and vertically beside then it is not a playable letter.
-					if(word.Length == 1)
-					{
-						if ((tile.GridX - 1 > 0 && m_boardTiles[tile.GridX - 1, tile.GridY] != null) ||     // Tile to the left.
-							(tile.GridX + 1 < 15 && m_boardTiles[tile.GridX + 1, tile.GridY] != null))      // Tile to the right.
-						{
-							if ((tile.GridY - 1 > 0 && m_boardTiles[tile.GridX, tile.GridY - 1] != null) || // Tile above.
-								(tile.GridY + 1 < 15 && m_boardTiles[tile.GridX, tile.GridY + 1] != null))  // Tile below.
-							{
-								continue;
-							}
-						}
-					}
-					if (!playableSpaces.ContainsKey(play))
-					{
-						playableSpaces.Add(play, new List<string>());
-					}
-
-					if (!playableSpaces[tile].Contains(word))
-					{
-						playableSpaces[tile].Add(word);
-					}
-				}
-			}
-
-			foreach (TileControl tile in verticalSpaces.Keys)
-			{
-				foreach (string word in verticalSpaces[tile])
-				{
-					if (!playableSpaces.ContainsKey(tile))
-					{
-						playableSpaces.Add(tile, new List<string>());
-					}
-
-					if (!playableSpaces[tile].Contains(word))
-					{
-						playableSpaces[tile].Add(word);
-					}
-				}
-			}
-
+			
 			return playableSpaces;
 		}
 
-		public Dictionary<string, TileControl> FindPossiblePlays(string playersLetters, Dictionary<TileControl, List<string>> playableSpaces)
+		public List<PossiblePlay> FindPossiblePlays(List<TileControl> playersTiles, List<ExistingPlay> playableSpaces)
 		{
-			DateTime start = DateTime.Now;
+			string playersLetters = "";
 			List<string> keysChecked = new List<string>();
-			Dictionary<string, TileControl> possiblePlays = new Dictionary<string, TileControl>;
+			List<PossiblePlay> possiblePlays = new List<PossiblePlay>();
 
-			foreach (TileControl tile in playableSpaces.Keys)
+			foreach (TileControl tile in playersTiles)
 			{
-				// For each place that a word can be made ...
-				foreach (string playableSpace in playableSpaces[tile])
+				if (tile.Letter != BLANK)		// TODO!!
 				{
-					// Find all words using 1 to all of the players letters.
-					for (int numberOfCharacters = 1; numberOfCharacters <= playersLetters.Length; numberOfCharacters++)
-					{
-						for (int i = 0; i <= playersLetters.Length - numberOfCharacters; i++)
-						{
-							// Select the first n letters
-							string testCharacters = playersLetters.Substring(i, numberOfCharacters);
-							string key = SortLetters(playableSpace + testCharacters);
-
-							// If the first n letters make up valid words then add them to the list.
-							if (!keysChecked.Contains(key))
-							{
-								keysChecked.Add(key);
-								if (m_wordLookup.ContainsKey(key))
-								{
-									foreach (string actualWord in m_wordLookup[key])
-									{
-										if (actualWord.Contains(playableSpace))
-										{
-											possiblePlays.Add(actualWord, tile);
-										}
-									}
-								}
-							}
-
-							// Now add each of the remaining letters in turn and check to see if that makes a word.
-							for (int j = i + numberOfCharacters; j < playersLetters.Length; j++)
-							{
-								key = SortLetters(playableSpace + testCharacters + playersLetters.Substring(j, 1));
-
-								if (!keysChecked.Contains(key))
-								{
-									keysChecked.Add(key);
-									if (m_wordLookup.ContainsKey(key))
-									{
-										foreach (string actualWord in m_wordLookup[key])
-										{
-											if (actualWord.Contains(playableSpace))
-											{
-												possiblePlays.Add(actualWord, tile);
-											}
-										}
-									}
-								}
-							}
-						}
-					}
+					playersLetters += tile.Letter;
 				}
 			}
 
-			DateTime end = DateTime.Now;
+#if DEBUG
+			ComputerTextBlock.Text = playersLetters;
+#endif
 
-			TimeSpan duration = end.Subtract(start);
-			MessageTextBox.Text = duration.Ticks.ToString();
-			MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
-			m_messageDisplayTime = DateTime.Now;
-
-			return possiblePlays;
-			// Sort all words (longest first) and return the list.
-			//return SortByLength(possibleWords);
-		}
-		
-		public List<string> FindPossibleWords(string playersLetters, List<string> existingPlays)
-		{
-			DateTime start = DateTime.Now;
-
-			List<string> possibleWords = new List<string>();
-			List<string> keysChecked = new List<string>();
-
-			// For each place that a word can be made ...
-			foreach (string playableSpace in existingPlays)
+			foreach (ExistingPlay existing in playableSpaces)
 			{
 				// Find all words using 1 to all of the players letters.
 				for (int numberOfCharacters = 1; numberOfCharacters <= playersLetters.Length; numberOfCharacters++)
@@ -2049,39 +1558,149 @@ namespace Scrabble
 					{
 						// Select the first n letters
 						string testCharacters = playersLetters.Substring(i, numberOfCharacters);
-						string key = SortLetters(playableSpace + testCharacters);
+						string key = SortLetters(existing.ExistingLetters + testCharacters);
 
-						// If the first n letters make up valid words then add them to the list.
-						if (!keysChecked.Contains(key))
-						{
-							keysChecked.Add(key);
-							if (m_wordLookup.ContainsKey(key))
-							{
-								foreach (string actualWord in m_wordLookup[key])
-								{
-									if (actualWord.Contains(playableSpace))
-									{
-										possibleWords.Add(actualWord);
-									}
-								}
-							}
-						}
+						// Start by checking the existing letters with the first n characters of the players letters.
+						FindPlays(key, existing, playersTiles, ref keysChecked, ref possiblePlays);
 
-						// Now add each of the remaining letters in turn and check to see if that makes a word.
+						// Now check each of the remaining letters in turn and check to see if that makes a word.
 						for (int j = i + numberOfCharacters; j < playersLetters.Length; j++)
 						{
-							key = SortLetters(playableSpace + testCharacters + playersLetters.Substring(j, 1));
+							key = SortLetters(existing.ExistingLetters + testCharacters + playersLetters.Substring(j, 1));
 
-							if (!keysChecked.Contains(key))
+							FindPlays(key, existing, playersTiles, ref keysChecked, ref possiblePlays);
+						}
+					}
+				}
+			}
+
+			return possiblePlays;
+		}
+
+		private void FindPlays(string key, ExistingPlay existing, List<TileControl> playersTiles, ref List<string> keysChecked, ref List<PossiblePlay> possiblePlays)
+		{
+			if (!keysChecked.Contains(key))
+			{
+				keysChecked.Add(key);
+				if (m_wordLookup.ContainsKey(key))
+				{
+					foreach (string actualWord in m_wordLookup[key])
+					{
+						if (actualWord.Contains(existing.ExistingLetters))
+						{
+							// It is possible that the existing letter(s) occur multiple times in the word that has been found.
+							// It is necessary that each instance be checked to see if the proposed word fits on the board.
+							List<int> indeciseOfExisting = IndicesOfStringInString(actualWord, existing.ExistingLetters);
+
+							foreach (int indexOfExistingPlay in indeciseOfExisting)
 							{
-								keysChecked.Add(key);
-								if (m_wordLookup.ContainsKey(key))
+								List<TileControl> tilesToPlay = new List<TileControl>();
+								if (HasRequiredLetters(actualWord, playersTiles, existing.ExistingLetters, indexOfExistingPlay, ref tilesToPlay))
 								{
-									foreach (string actualWord in m_wordLookup[key])
+									int tilesIndex = 0;
+									bool wordFits = true;
+									PossiblePlay play = new PossiblePlay() { Word = actualWord, Interaction = existing };
+									
+									if (existing.Horizontal)
 									{
-										if (actualWord.Contains(playableSpace))
+										for(int i = 0; i < indexOfExistingPlay; i++)
 										{
-											possibleWords.Add(actualWord);
+											if(existing.StartTile.GridX - indexOfExistingPlay + i < 0 ||
+												existing.StartTile.GridX - indexOfExistingPlay + i > 14)
+											{
+												wordFits = false;
+												break;
+											}
+											tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX - indexOfExistingPlay + i;
+											tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY;
+
+											play.XValues.Add(tilesToPlay[tilesIndex].GridX);
+											play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+
+											tilesIndex++;
+										}
+										if (wordFits)
+										{
+											for (int i = tilesIndex; i < tilesToPlay.Count; i++)
+											{
+												if (existing.StartTile.GridX + existing.ExistingLetters.Length + i < 0 ||
+													existing.StartTile.GridX + existing.ExistingLetters.Length + i > 14)
+												{
+													wordFits = false;
+													break;
+												}
+												tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX + existing.ExistingLetters.Length - indexOfExistingPlay + i;
+												tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY;
+
+												play.XValues.Add(tilesToPlay[tilesIndex].GridX);
+												play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+
+												tilesIndex++;
+											}
+										}
+									}
+									else
+									{
+										for (int i = 0; i < indexOfExistingPlay; i++)
+										{
+											if (existing.StartTile.GridY - indexOfExistingPlay + i < 0 ||
+												existing.StartTile.GridY - indexOfExistingPlay + i > 14)
+											{
+												wordFits = false;
+												break;
+											}
+											tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX;
+											tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY - indexOfExistingPlay + i;
+
+											play.XValues.Add(tilesToPlay[tilesIndex].GridX);
+											play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+
+											tilesIndex++;
+										}
+										if (wordFits)
+										{
+											for (int i = tilesIndex; i < tilesToPlay.Count; i++)
+											{
+												if (existing.StartTile.GridY + existing.ExistingLetters.Length + i < 0 ||
+													existing.StartTile.GridY + existing.ExistingLetters.Length + i > 14)
+												{
+													wordFits = false;
+													break;
+												}
+												tilesToPlay[tilesIndex].GridX = existing.StartTile.GridX;
+												tilesToPlay[tilesIndex].GridY = existing.StartTile.GridY + existing.ExistingLetters.Length - indexOfExistingPlay + i;
+
+												play.XValues.Add(tilesToPlay[tilesIndex].GridX);
+												play.YValues.Add(tilesToPlay[tilesIndex].GridY);
+
+												tilesIndex++;
+											}
+										}
+									}
+
+									if (wordFits)
+									{
+										// Check that all words created by the placement of this word are valid.
+										List<string> wordsPlayed = GetPlayedWords(existing.Horizontal, tilesToPlay);
+
+										bool allWordsOk = true;
+										foreach (string playedWord in wordsPlayed)
+										{
+											if (playedWord.Length > 0)
+											{
+												if (!m_words.Contains(playedWord))
+												{
+													allWordsOk = false;
+													break;
+												}
+											}
+										}
+										if (allWordsOk)
+										{
+											play.TilesToPlay = tilesToPlay;
+											play.WordsCreated = wordsPlayed;
+											play.TotalValue = actualWord.Length * wordsPlayed.Count;
+											possiblePlays.Add(play);
 										}
 									}
 								}
@@ -2090,17 +1709,43 @@ namespace Scrabble
 					}
 				}
 			}
-
-			DateTime end = DateTime.Now;
-
-			TimeSpan duration = end.Subtract(start);
-			MessageTextBox.Text = duration.Ticks.ToString();
-			MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
-			m_messageDisplayTime = DateTime.Now;
-
-			// Sort all words (longest first) and return the list.
-			return SortByLength(possibleWords);
-
 		}
+
+		// Checks to see if the desiredWord can be constructed from the playersLetters and the existingLetters.
+		private bool HasRequiredLetters(string desiredWord, List<TileControl> playersTiles, string existingLetters, int indexOfExisting, ref List<TileControl> tilesToPlay)
+		{
+			string remainder = desiredWord.Substring(0, indexOfExisting) +
+								desiredWord.Substring(indexOfExisting + existingLetters.Length);
+			TileControl[] playersTileArray = new TileControl[playersTiles.Count];
+			playersTiles.CopyTo(playersTileArray);
+
+			List<TileControl> manipulatableList = new List<TileControl>(playersTiles);
+
+			foreach (char letter in remainder)
+			{
+				TileControl found = null;
+
+				foreach (TileControl tile in manipulatableList)
+				{
+					if(tile.Letter[0] == letter)
+					{
+						found = tile;
+						break;
+					}
+				}
+
+				if(found != null)
+				{
+					manipulatableList.Remove(found);
+					tilesToPlay.Add(found);
+				}
+				else
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}		
 	}
 }
