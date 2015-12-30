@@ -21,6 +21,7 @@ namespace Scrabble
 		Unknown,
 		PlayersTurn,
 		ComputersTurn,
+		ComputerIsThinking,
 		GameOver,
 	}
 

@@ -9,5 +9,30 @@
     d:DesignHeight="300"
     d:DesignWidth="300" >
 
-    <Image x:Name="LetterImage" Source="Assets/A.png" ManipulationMode="All" Stretch="UniformToFill"/>
+    <Grid >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70*"/>
+            <RowDefinition Height="25*"/>
+            <RowDefinition Height="5*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="70*"/>
+            <ColumnDefinition Width="25*"/>
+            <ColumnDefinition Width="5*"/>
+        </Grid.ColumnDefinitions>
+        <Rectangle x:Name="TileRectangle" RadiusX="20" RadiusY="20" Grid.RowSpan="3" Grid.ColumnSpan="3" Fill="#FFF7CD5E" SizeChanged="TileRectangle_SizeChanged">
+            <Rectangle.Stroke>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0,0.5">
+                    <GradientStop Color="Black" Offset="0"/>
+                    <GradientStop Color="White" Offset="1"/>
+                </LinearGradientBrush>
+            </Rectangle.Stroke>
+        </Rectangle>
+        <Viewbox Grid.RowSpan="3" Grid.ColumnSpan="3">
+            <TextBlock x:Name="TileLetterTextBlock" Text="A" LineHeight="18" LineStackingStrategy="BlockLineHeight" />
+        </Viewbox>
+        <Viewbox Grid.Column="1" Grid.Row="1" >
+            <TextBlock x:Name="LetterValueTextBlock" Text="1" Foreground="Black" FontSize="20"/>
+        </Viewbox>
+    </Grid>
 </UserControl>

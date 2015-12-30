@@ -10,6 +10,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Data;
+using Windows.UI.Xaml.Documents;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
@@ -27,7 +28,6 @@ namespace Scrabble
 		private int m_computersScore = 0;
 		private bool m_restartLastGame = false;
 		private bool m_computersWordFound = false;
-		private bool[] m_panelSpaceFilled = new bool[7];
 		private bool[,] m_boardSpaceFilled = new bool[15, 15];
 		private double m_tileSize = 15;
 		//private Gaddag m_gaddag = new Gaddag();
@@ -96,6 +96,8 @@ namespace Scrabble
 		public GamePage()
 		{
 			this.InitializeComponent();
+
+			this.SizeChanged += GamePage_SizeChanged;
 
 			m_randomiser = new Random((int)DateTime.Now.TimeOfDay.TotalSeconds);
 
@@ -180,6 +182,8 @@ namespace Scrabble
 			m_boardScores[14, 14] = eScrabbleScores.TripleWordValue;
 			//-------------------------------------------------------------------------------------
 
+			FillLetterBag();
+
 			ReadWords();
 		}
 
@@ -195,11 +199,28 @@ namespace Scrabble
 			}
 			else
 			{
-				StartNewGame();
+				StartGame();
 			}
 		}
 
-		private void GamePageRoot_SizeChanged(object sender, SizeChangedEventArgs e)
+		private void GamePage_SizeChanged(object sender, SizeChangedEventArgs e)
+		{
+			if (ScrabbleBoard.Height > 0 && ScrabbleBoard.Width > 0)
+			{
+				// Decide whether height or width is the governing factor
+				if (CentreRowDefinition.ActualHeight / 16 > CentreColumnDefinition.ActualWidth / 15)    // Width
+				{
+					ScrabbleBoard.Height = 16 * CentreColumnDefinition.ActualWidth / 15;
+				}
+				else
+				{
+					ScrabbleBoard.Width = 15 * CentreRowDefinition.ActualHeight / 16;
+				}
+				ResizeTiles();
+			}
+		}
+
+		private void ScrabbleBoard_SizeChanged(object sender, SizeChangedEventArgs e)
 		{
 			ResizeTiles();
 		}
@@ -207,7 +228,6 @@ namespace Scrabble
 		private void ResizeTiles()
 		{
 			m_tileSize = ScrabbleBoard.ActualWidth / 15;
-//			m_tileSize = ScrabbleBoard.ActualHeight / 16;
 
 			foreach (TileControl tile in m_playedTiles)
 			{
@@ -231,6 +251,38 @@ namespace Scrabble
 			if (m_turnState != eTurnState.PlayersTurn)
 			{
 				e.Handled = true;
+			}
+			else
+			{
+				TileControl draggedItem = (TileControl)sender;
+
+				if(!(draggedItem.TileStatus == eTileState.ComposingNewWord || draggedItem.TileStatus == eTileState.OnPlayerPanel))
+				{
+					e.Handled = true;
+				}
+			}
+		}
+
+		private void DragLetter_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+		{
+			if (!e.IsInertial)
+			{
+				TileControl draggedItem = (TileControl)sender;
+				TranslateTransform tileRenderTransform = draggedItem.RenderTransform as TranslateTransform;
+
+				tileRenderTransform.X += e.Delta.Translation.X;
+				tileRenderTransform.Y += e.Delta.Translation.Y;
+
+				if (m_previousImage != null)
+				{
+					Canvas.SetZIndex(m_previousImage, 0);
+				}
+				m_previousImage = draggedItem;
+				Canvas.SetZIndex(draggedItem, 1);
+			}
+			else
+			{
+				e.Complete();
 			}
 		}
 
@@ -443,11 +495,11 @@ namespace Scrabble
 				m_boardSpaceFilled[draggedItem.GridX, draggedItem.GridY] = false;
 			}
 
-			draggedItem.Width = m_tileSize;
-			draggedItem.Height = m_tileSize;
+			draggedItem.Width = m_tileSize * 0.95;
+			draggedItem.Height = m_tileSize * 0.95;
 			draggedItem.GridX = gridX;
 			draggedItem.GridY = 16;
-			draggedItem.Visibility = Windows.UI.Xaml.Visibility.Visible;
+			draggedItem.Visibility = Visibility.Visible;
 
 			if (draggedItem.TileStatus == eTileState.ComposingNewWord)
 			{
@@ -470,8 +522,8 @@ namespace Scrabble
 			Rect boardRect = boardTransform.TransformBounds(new Rect(0, 0, ScrabbleBoard.ActualWidth, ScrabbleBoard.ActualHeight));
 			Point positionOfBoard = boardTransform.TransformPoint(new Point(0, 0));
 
-			tileRenderTransform.X = positionOfBoard.X + (m_tileSize * gridX);
-			tileRenderTransform.Y = positionOfBoard.Y + (m_tileSize * gridY);
+			tileRenderTransform.X = positionOfBoard.X + (m_tileSize * gridX) + m_tileSize * 0.015;
+			tileRenderTransform.Y = positionOfBoard.Y + (m_tileSize * gridY) + m_tileSize * 0.015;
 
 			if (draggedItem.GridY != 16 && draggedItem.GridX >= 0 && draggedItem.GridY >= 0)
 			{
@@ -479,11 +531,11 @@ namespace Scrabble
 			}
 
 			m_boardSpaceFilled[gridX, gridY] = true;
-			draggedItem.Width = m_tileSize;
-			draggedItem.Height = m_tileSize;
+			draggedItem.Width = m_tileSize * 0.95;
+			draggedItem.Height = m_tileSize * 0.95;
 			draggedItem.GridX = gridX;
 			draggedItem.GridY = gridY;
-			draggedItem.Visibility = Windows.UI.Xaml.Visibility.Visible;
+			draggedItem.Visibility = Visibility.Visible;
 
 			if (draggedItem.TileStatus == eTileState.OnPlayerPanel)
 			{
@@ -597,80 +649,6 @@ namespace Scrabble
 			}
 		}
 
-
-		private void FindNearestPanelSpace(double placementX, ref int gridX, ref double desiredX)
-		{
-			bool left = (placementX % m_tileSize) < (m_tileSize / 2);
-
-			// Move left one if possible.
-			if (left && gridX > 0 && !m_panelSpaceFilled[gridX - 1])
-			{
-				gridX--;
-				desiredX -= m_tileSize;
-			}
-			// Move right one if possible.
-			else if (!left && gridX < 6 && !m_panelSpaceFilled[gridX + 1])
-			{
-				gridX++;
-				desiredX += m_tileSize;
-			}
-			// If no single space moves are possible then try to find any free space.
-			else
-			{
-				bool spaceFound = false;
-
-				if (left && gridX > 1)
-				{
-					for (int column = gridX; column >= 0; column--)
-					{
-						if (!m_panelSpaceFilled[column])
-						{
-							spaceFound = true;
-							desiredX -= m_tileSize * (gridX - column);
-							gridX = column;
-							break;
-						}
-					}
-				}
-				if (!spaceFound && !left && gridX < 5)
-				{
-					for (int column = gridX; column < 6; column++)
-					{
-						if (!m_panelSpaceFilled[column])
-						{
-							spaceFound = true;
-							desiredX += m_tileSize * (column - gridX);
-							gridX = column;
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		private void DragLetter_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
-		{
-			if (!e.IsInertial)
-			{
-				TileControl dragableItem = sender as TileControl;
-				TranslateTransform tileRenderTransform = dragableItem.RenderTransform as TranslateTransform;
-
-				tileRenderTransform.X += e.Delta.Translation.X;
-				tileRenderTransform.Y += e.Delta.Translation.Y;
-
-				if (m_previousImage != null)
-				{
-					Canvas.SetZIndex(m_previousImage, 0);
-				}
-				m_previousImage = dragableItem;
-				Canvas.SetZIndex(dragableItem, 1);
-			}
-			else
-			{
-				e.Complete();
-			}
-		}
-
 		#endregion Letter Dragging Functionality
 
 		private void ScrabbleBoard_Loaded(object sender, RoutedEventArgs e)
@@ -678,9 +656,69 @@ namespace Scrabble
 
 		}
 
-		private void ScrabbleBoard_SizeChanged(object sender, SizeChangedEventArgs e)
+		private void NewGameButton_Click(object sender, RoutedEventArgs e)
 		{
-			ResizeTiles();
+			PlayButton.Visibility = Visibility.Collapsed;
+			RecallLettersButton.Visibility = Visibility.Collapsed;
+			PassButton.Visibility = Visibility.Visible;
+			SwapLettersButton.Visibility = Visibility.Visible;
+			ShuffleLettersButton.Visibility = Visibility.Visible;
+			NewGameButton.Visibility = Visibility.Collapsed;
+
+			m_playersScore = 0;
+			m_computersScore = 0;
+			PlayersScoreTextBlock.Text = "0";
+			ComputersScoreTextBlock.Text = "0";
+			PlayersWords.Blocks.Clear();
+			ComputersWords.Blocks.Clear();
+
+			foreach (TileControl tile in m_currentWordTiles)
+			{
+				tile.Visibility = Visibility.Collapsed;
+				tile.TileStatus = eTileState.InBag;
+				m_letterBag.Add(tile);
+			}
+			m_currentWordTiles.Clear();
+
+			foreach (TileControl tile in m_playedTiles)
+			{
+				tile.Visibility = Visibility.Collapsed;
+				tile.TileStatus = eTileState.InBag;
+				m_letterBag.Add(tile);
+			}
+			m_playedTiles.Clear();
+
+			foreach (TileControl tile in m_panelTiles)
+			{
+				tile.Visibility = Visibility.Collapsed;
+				tile.TileStatus = eTileState.InBag;
+				m_letterBag.Add(tile);
+			}
+			m_panelTiles.Clear();
+
+			foreach (TileControl tile in m_computersTiles)
+			{
+				tile.Visibility = Visibility.Collapsed;
+				tile.TileStatus = eTileState.InBag;
+				m_letterBag.Add(tile);
+			}
+			m_computersTiles.Clear();
+
+			for (int x = 0; x < 15; x++)
+			{
+				for (int y = 0; y < 15; y++)
+				{
+					if (m_boardTiles[x, y] != null)
+					{
+						m_boardTiles[x, y].TileStatus = eTileState.InBag;
+						m_letterBag.Add(m_boardTiles[x, y]);
+						m_boardTiles[x, y] = null;
+					}
+					m_boardSpaceFilled[x, y] = false;
+				}
+			}
+
+			StartGame();
 		}
 
 		private void ShuffleLettersButton_Click(object sender, RoutedEventArgs e)
@@ -710,20 +748,33 @@ namespace Scrabble
 			m_panelTiles.Clear();
 			for (int i = 0; i < 7; i++)
 			{
-				int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
+				if (m_letterBag.Count > 0)
+				{
+					int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
 
-				TileControl tile = m_letterBag[nextLetter];
+					TileControl tile = m_letterBag[nextLetter];
 
-				tile.TileStatus = eTileState.OnPlayerPanel;
-				m_panelTiles.Add(tile);
+					tile.TileStatus = eTileState.OnPlayerPanel;
+					m_panelTiles.Add(tile);
 
-				m_letterBag.RemoveAt(nextLetter);
+					m_letterBag.RemoveAt(nextLetter);
+				}
+				else
+				{
+					break;
+				}
 			}
 		}
 
 		private void RecallLettersButton_Click(object sender, RoutedEventArgs e)
 		{
-
+			if (m_currentWordTiles.Count > 0)
+			{
+				while ( m_currentWordTiles.Count > 0)
+				{
+					PlaceTileOnPanel(m_currentWordTiles[0], 0);
+				}
+			}
 		}
 
 		private void PlayButton_Click(object sender, RoutedEventArgs e)
@@ -731,11 +782,13 @@ namespace Scrabble
 			if (m_currentWordTiles.Count == 0)
 			{
 				MessageTextBox.Text = "You have not placed any letters!";
-				MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+				MessageTextBox.Visibility = Visibility.Visible;
 				m_messageDisplayTime = DateTime.Now;
 			}
 			else
 			{
+				MessageTextBox.Visibility = Visibility.Collapsed;
+
 				bool allWordsOk = true;
 				List<WordAndScore> wordsPlayed = new List<WordAndScore>();
 
@@ -763,7 +816,7 @@ namespace Scrabble
 					if (wordHorizontal == wordVertical)
 					{
 						MessageTextBox.Text = "Invalid Tile placement!";
-						MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+						MessageTextBox.Visibility = Visibility.Visible;
 						m_messageDisplayTime = DateTime.Now;
 					}
 					else if (wordHorizontal)
@@ -784,17 +837,9 @@ namespace Scrabble
 						(tile.GridY + 1 < 15 && m_boardTiles[tile.GridX, tile.GridY + 1] != null))
 					{
 						horizontal = false;
-					}						
+					}
 
 					wordsPlayed = GetPlayedWords(horizontal, m_currentWordTiles);
-
-					List<TileControl> playedTiles = new List<TileControl>();
-
-					// Add the only tile played.
-					playedTiles.Add(m_currentWordTiles[0]);
-
-					GetVerticalWordsForWordPlayedHorizontal(playedTiles, ref wordsPlayed);
-					GetHorizontalWordsForWordPlayedVertical(playedTiles, ref wordsPlayed);
 				}
 
 				foreach (WordAndScore playedWord in wordsPlayed)
@@ -804,7 +849,7 @@ namespace Scrabble
 						if (!m_words.Contains(playedWord.Word))
 						{
 							MessageTextBox.Text = "My dictionary does not contain the word '" + playedWord.Word + "'.";
-							MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+							MessageTextBox.Visibility = Visibility.Visible;
 							m_messageDisplayTime = DateTime.Now;
 							allWordsOk = false;
 							break;
@@ -815,19 +860,44 @@ namespace Scrabble
 				if (allWordsOk)
 				{
 					int totalScore = m_currentWordTiles.Count == 7 ? 50 : 0;
+
+					Paragraph scoreText = new Paragraph();
+
 					foreach (WordAndScore playedWord in wordsPlayed)
 					{
+						if (playedWord.Score == 0 || playedWord.Word.Length == 0)
+						{
+							int x = 0;
+						}
 						totalScore += playedWord.Score;
 						m_allWordsPlayed.Add(playedWord.Word);
-						PlayersWords.Items.Add(playedWord.Word + " - " + playedWord.Score.ToString());
+
+						if (scoreText.Inlines.Count > 0)
+						{
+							scoreText.Inlines.Add(new Run() { Text = "\r\n + " });
+						}
+						scoreText.Inlines.Add(new Run() { Text = playedWord.Word + " - " + playedWord.Score.ToString() });
 					}
-					if (wordsPlayed.Count > 1)
+					if (totalScore == 0 || wordsPlayed.Count == 0)
 					{
-						PlayersWords.Items.Add("Total Score - " + totalScore.ToString());
+						int x = 0;
 					}
+					if (m_currentWordTiles.Count == 7)
+					{
+						scoreText.Inlines.Add(new Run() { Text = "\r\n + All Tiles Bonus - 50" });
+					}
+					if (wordsPlayed.Count > 1 || m_currentWordTiles.Count == 7)
+					{
+						scoreText.Inlines.Add(new Run() { Text = "\r\nTotal Score - " + totalScore.ToString() });
+					}
+					PlayersWords.Blocks.Add(scoreText);
+
 					foreach (TileControl tile in m_currentWordTiles)
 					{
 						tile.TileStatus = eTileState.Played;
+						tile.ManipulationStarting -= DragLetter_ManipulationStarting;
+						tile.ManipulationDelta -= DragLetter_ManipulationDelta;
+						tile.ManipulationCompleted -= DragLetter_ManipulationCompleted;
 						m_playedTiles.Add(tile);
 						m_boardTiles[tile.GridX, tile.GridY] = tile;
 					}
@@ -839,29 +909,37 @@ namespace Scrabble
 
 					for (int i = 7 - m_panelTiles.Count; i > 0; i--)
 					{
-						int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
+						if (m_letterBag.Count > 0)
+						{
+							int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
 
-						TileControl tile = m_letterBag[nextLetter];
+							TileControl tile = m_letterBag[nextLetter];
 
-						tile.TileStatus = eTileState.OnPlayerPanel;
-						tile.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
-						tile.ManipulationStarting += DragLetter_ManipulationStarting;
-						tile.ManipulationDelta += DragLetter_ManipulationDelta;
-						tile.ManipulationCompleted += DragLetter_ManipulationCompleted;
+							tile.TileStatus = eTileState.OnPlayerPanel;
+							tile.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
+							tile.ManipulationStarting += DragLetter_ManipulationStarting;
+							tile.ManipulationDelta += DragLetter_ManipulationDelta;
+							tile.ManipulationCompleted += DragLetter_ManipulationCompleted;
 
-						PlaceTileOnPanel(tile, i / 2);
+							PlaceTileOnPanel(tile, i / 2);
 
-						m_panelTiles.Add(tile);
+							m_panelTiles.Add(tile);
 
-						m_letterBag.RemoveAt(nextLetter);
+							m_letterBag.RemoveAt(nextLetter);
+						}
+						else
+						{
+							break;
+						}
 					}
+					TileRemainingTextBlock.Text = "Tiles Remaining : " + m_letterBag.Count.ToString();
 				}
 			}
 		}
 
 		private void PassButton_Click(object sender, RoutedEventArgs e)
 		{
-
+			m_turnState = eTurnState.ComputersTurn;
 		}
 
 		string SortLetters(string s)
@@ -896,32 +974,82 @@ namespace Scrabble
 
 		void GameTimer_Tick(object sender, object e)
 		{
-			if (DateTime.Now.Subtract(m_messageDisplayTime).TotalSeconds > 5 && MessageTextBox.Visibility == Windows.UI.Xaml.Visibility.Visible)
+			// Check for GAME OVER
+			if (m_letterBag.Count == 0)
 			{
-				MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Collapsed;
+				if ((m_panelTiles.Count == 0 && m_currentWordTiles.Count == 0) || m_computersTiles.Count == 0)
+				{
+					m_turnState = eTurnState.GameOver;
+					if (m_computersScore > m_playersScore)
+					{
+						MessageTextBox.Text = "GAME OVER - The computer won this round.";
+					}
+					else
+					{
+						MessageTextBox.Text = "GAME OVER - You beat the computer.";
+					}
+					MessageTextBox.Visibility = Visibility.Visible;
+					PlayButton.Visibility = Visibility.Collapsed;
+					RecallLettersButton.Visibility = Visibility.Collapsed;
+					PassButton.Visibility = Visibility.Collapsed;
+					SwapLettersButton.Visibility = Visibility.Collapsed;
+					ShuffleLettersButton.Visibility = Visibility.Collapsed;
+					NewGameButton.Visibility = Visibility.Visible;
+				}
+			}
+
+			if (m_turnState != eTurnState.GameOver && 
+				DateTime.Now.Subtract(m_messageDisplayTime).TotalSeconds > 5 && 
+				MessageTextBox.Visibility == Visibility.Visible)
+			{
+				MessageTextBox.Visibility = Visibility.Collapsed;
 			}
 
 			if (m_turnState == eTurnState.ComputersTurn)
 			{
-				if (DetermineComputersWord())
+				m_turnState = eTurnState.ComputerIsThinking;
+				MessageTextBox.Text = "Thinking...";
+				MessageTextBox.Visibility = Visibility.Visible;
+				m_messageDisplayTime = DateTime.Now;
+				ComputerThinkingProgressRing.IsActive = true;
+
+				PlayComputersTurn();
+			}
+			else if (m_turnState == eTurnState.PlayersTurn)
+			{
+			}
+			else
+			{
+			}
+		}
+
+		private async void PlayComputersTurn()
+		{
+			if (DetermineComputersWord())
+			{
+				ComputerThinkingProgressRing.IsActive = false;
+				m_turnState = eTurnState.PlayersTurn;
+			}
+			else
+			{
+				Paragraph scoreText = new Paragraph();
+				scoreText.Inlines.Add(new Run() { Text = "Exchanged Tiles" });
+				ComputersWords.Blocks.Add(scoreText);
+
+				MessageTextBox.Text = "Computer could not find a word. Exchanging letters.";
+				MessageTextBox.Visibility = Visibility.Visible;
+				m_messageDisplayTime = DateTime.Now;
+
+				for (int i = 0; i < m_computersTiles.Count; i++)
 				{
-					m_turnState = eTurnState.PlayersTurn;
+					m_computersTiles[i].TileStatus = eTileState.InBag;
+					m_letterBag.Add(m_computersTiles[i]);
 				}
-				else
+
+				m_computersTiles.Clear();
+				for (int i = 0; i < 7; i++)
 				{
-					ComputersWords.Items.Add("Exchanged Tiles");
-					MessageTextBox.Text = "Computer could not find a word. Exchanging letters.";
-					MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
-					m_messageDisplayTime = DateTime.Now;
-
-					for (int i = 0; i < m_computersTiles.Count; i++)
-					{
-						m_computersTiles[i].TileStatus = eTileState.InBag;
-						m_letterBag.Add(m_computersTiles[i]);
-					}
-
-					m_computersTiles.Clear();
-					for (int i = 0; i < 7; i++)
+					if (m_letterBag.Count > 0)
 					{
 						int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
 
@@ -933,12 +1061,9 @@ namespace Scrabble
 						m_letterBag.RemoveAt(nextLetter);
 					}
 				}
-			}
-			else if (m_turnState == eTurnState.PlayersTurn)
-			{
-			}
-			else
-			{
+
+				ComputerThinkingProgressRing.IsActive = false;
+				m_turnState = eTurnState.PlayersTurn;
 			}
 		}
 
@@ -980,8 +1105,9 @@ namespace Scrabble
 
 		private bool DetermineComputersWord()
 		{
+#if DEBUG
 			DateTime start = DateTime.Now;
-
+#endif
 			m_computersWordFound = false;
 
 			List<ExistingPlay> playableSpaces = GetPlayableSpaces(m_computersTiles.Count);			
@@ -1005,15 +1131,27 @@ namespace Scrabble
 						}
 					}
 
+					Paragraph scoreText = new Paragraph();
+
 					foreach (WordAndScore playedWord in playToUse.WordsCreated)
 					{
 						m_allWordsPlayed.Add(playedWord.Word);
-						ComputersWords.Items.Add(playedWord.Word + " - " + playedWord.Score.ToString());
+
+						if (scoreText.Inlines.Count > 0)
+						{
+							scoreText.Inlines.Add(new Run() { Text = "\r\n + " });
+						}
+						scoreText.Inlines.Add(new Run() { Text = playedWord.Word + " - " + playedWord.Score.ToString() });
 					}
-					if (playToUse.WordsCreated.Count > 1)
+					if(playToUse.TilesToPlay.Count == 7)
 					{
-						ComputersWords.Items.Add("Total Score - " + playToUse.TotalValue.ToString());
+						scoreText.Inlines.Add(new Run() { Text = "\r\n + All Tiles Bonus - 50" });
 					}
+					if (playToUse.WordsCreated.Count > 1 || playToUse.TilesToPlay.Count == 7)
+					{
+						scoreText.Inlines.Add(new Run() { Text = "\r\nTotal Score - " + playToUse.TotalValue.ToString() });
+					}
+					ComputersWords.Blocks.Add(scoreText);
 
 					m_computersScore += playToUse.TotalValue;
 					ComputersScoreTextBlock.Text = m_computersScore.ToString();
@@ -1038,23 +1176,31 @@ namespace Scrabble
 
 			for (int i = 7 - m_computersTiles.Count; i > 0; i--)
 			{
-				int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
+				if (m_letterBag.Count > 0)
+				{
+					int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
 
-				TileControl tile = m_letterBag[nextLetter];
+					TileControl tile = m_letterBag[nextLetter];
 
-				tile.TileStatus = eTileState.OnComputerPanel;
-				m_computersTiles.Add(tile);
+					tile.TileStatus = eTileState.OnComputerPanel;
+					m_computersTiles.Add(tile);
 
-				m_letterBag.RemoveAt(nextLetter);
+					m_letterBag.RemoveAt(nextLetter);
+				}
+				else
+				{
+					break;
+				}			
 			}
-
+			TileRemainingTextBlock.Text = "Tiles Remaining : " + m_letterBag.Count.ToString();
+#if DEBUG
 			DateTime end = DateTime.Now;
 
 			TimeSpan duration = end.Subtract(start);
-			MessageTextBox.Text = duration.Ticks.ToString();
-			MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+			MessageTextBox.Text = duration.TotalSeconds.ToString() + " Seconds";
+			MessageTextBox.Visibility = Visibility.Visible;
 			m_messageDisplayTime = DateTime.Now;
-
+#endif 
 			return m_computersWordFound;
 		}
 
@@ -1165,7 +1311,13 @@ namespace Scrabble
 				}
 
 				score *= wordMultiplier;
-				ComputersWords.Items.Add(longestWord + " - " + score.ToString());
+
+				Paragraph scoreText = new Paragraph();
+				scoreText.Inlines.Add(new Run() { Text = longestWord + " - " + score.ToString() });
+				ComputersWords.Blocks.Add(scoreText);
+
+				m_computersScore += score;
+				ComputersScoreTextBlock.Text = m_computersScore.ToString();
 
 				result = true;
 			}
@@ -1182,10 +1334,10 @@ namespace Scrabble
 				for (int i = 0; i < scrabbleLetter.NumberOf; i++)
 				{
 					TileControl tile = new TileControl(scrabbleLetter.Letter, scrabbleLetter.LetterValue);
-					tile.Visibility = Windows.UI.Xaml.Visibility.Collapsed;
+					tile.Visibility = Visibility.Collapsed;
 					tile.RenderTransform = new TranslateTransform();
-					tile.HorizontalAlignment = Windows.UI.Xaml.HorizontalAlignment.Left;
-					tile.VerticalAlignment = Windows.UI.Xaml.VerticalAlignment.Top;
+					tile.HorizontalAlignment = HorizontalAlignment.Left;
+					tile.VerticalAlignment = VerticalAlignment.Top;
 					MainGrid.Children.Add(tile);
 
 					m_letterBag.Add(tile);
@@ -1193,10 +1345,8 @@ namespace Scrabble
 			}
 		}
 
-		private void StartNewGame()
+		private void StartGame()
 		{
-			FillLetterBag();
-
 			for (int i = 0; i < 7; i++)
 			{
 				int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
@@ -1231,14 +1381,14 @@ namespace Scrabble
 			{
 				m_turnState = eTurnState.PlayersTurn;
 				MessageTextBox.Text = "You won the draw, it is your turn to place a word.";
-				MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+				MessageTextBox.Visibility = Visibility.Visible;
 				m_messageDisplayTime = DateTime.Now;
 			}
 			else
 			{
 				m_turnState = eTurnState.ComputersTurn;
 				MessageTextBox.Text = "The Computer won the draw.";
-				MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+				MessageTextBox.Visibility = Visibility.Visible;
 				m_messageDisplayTime = DateTime.Now;
 			}
 
@@ -1250,17 +1400,17 @@ namespace Scrabble
 		{
 			if (m_panelTiles.Count == 7)
 			{
-				PlayButton.Visibility = Windows.UI.Xaml.Visibility.Collapsed;
-				RecallLettersButton.Visibility = Windows.UI.Xaml.Visibility.Collapsed;
-				PassButton.Visibility = Windows.UI.Xaml.Visibility.Visible;
-				SwapLettersButton.Visibility = Windows.UI.Xaml.Visibility.Visible;
+				PlayButton.Visibility = Visibility.Collapsed;
+				RecallLettersButton.Visibility = Visibility.Collapsed;
+				PassButton.Visibility = Visibility.Visible;
+				SwapLettersButton.Visibility = Visibility.Visible;
 			}
 			else
 			{
-				PlayButton.Visibility = Windows.UI.Xaml.Visibility.Visible;
-				RecallLettersButton.Visibility = Windows.UI.Xaml.Visibility.Visible;
-				PassButton.Visibility = Windows.UI.Xaml.Visibility.Collapsed;
-				SwapLettersButton.Visibility = Windows.UI.Xaml.Visibility.Collapsed;
+				PlayButton.Visibility = Visibility.Visible;
+				RecallLettersButton.Visibility = Visibility.Visible;
+				PassButton.Visibility = Visibility.Collapsed;
+				SwapLettersButton.Visibility = Visibility.Collapsed;
 			}
 		}
 
@@ -1348,34 +1498,33 @@ namespace Scrabble
 
 		private int ScoreTilePlacement(TileControl tile, ref int wordMultiplier)
 		{
-			int score = 0;
-			eScrabbleScores placeMultiplier = m_boardScores[tile.GridX, tile.GridY];
+			int score = tile.LetterValue;
 
-			switch (placeMultiplier) 
+			// If this is a newly placed tile then multipliers apply.
+			if (tile.TileStatus != eTileState.Played)
 			{
-				case eScrabbleScores.DoubleLetterValue:
-					score = tile.LetterValue * 2;
-					break;
-				case eScrabbleScores.DoubleWordValue:
-					score = tile.LetterValue;
-					if (tile.TileStatus != eTileState.Played)
-					{
+				eScrabbleScores placeMultiplier = m_boardScores[tile.GridX, tile.GridY];
+
+				switch (placeMultiplier)
+				{
+					case eScrabbleScores.DoubleLetterValue:
+						score = tile.LetterValue * 2;
+						break;
+					case eScrabbleScores.DoubleWordValue:
+						score = tile.LetterValue;
 						wordMultiplier *= 2;
-					}
-					break;
-				case eScrabbleScores.LetterValue:
-					score = tile.LetterValue;
-					break;
-				case eScrabbleScores.TripleLetterValue:
-					score = tile.LetterValue * 3;
-					break;
-				case eScrabbleScores.TripleWordValue:
-					score = tile.LetterValue;
-					if (tile.TileStatus != eTileState.Played)
-					{
+						break;
+					case eScrabbleScores.LetterValue:
+						score = tile.LetterValue;
+						break;
+					case eScrabbleScores.TripleLetterValue:
+						score = tile.LetterValue * 3;
+						break;
+					case eScrabbleScores.TripleWordValue:
+						score = tile.LetterValue;
 						wordMultiplier *= 3;
-					}
-					break;
+						break;
+				}
 			}
 
 			return score;
@@ -1421,7 +1570,7 @@ namespace Scrabble
 						else
 						{
 							MessageTextBox.Text = "There seems to be a gap in your word!";
-							MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+							MessageTextBox.Visibility = Visibility.Visible;
 							m_messageDisplayTime = DateTime.Now;
 							playedWord.Word = string.Empty;
 							playedWord.Score = 0;
@@ -1495,7 +1644,7 @@ namespace Scrabble
 						else
 						{
 							MessageTextBox.Text = "There seems to be a gap in your word!";
-							MessageTextBox.Visibility = Windows.UI.Xaml.Visibility.Visible;
+							MessageTextBox.Visibility = Visibility.Visible;
 							m_messageDisplayTime = DateTime.Now;
 							playedWord.Word = string.Empty;
 							playedWord.Score = 0;
@@ -1564,7 +1713,7 @@ namespace Scrabble
 				playedWord.Score += ScoreTilePlacement(playedTiles[tileIndex], ref wordMultiplier);
 				Y++;
 				// Now check after the played tile as well.
-				while (Y < 14 && m_boardTiles[X, Y] != null)
+				while (Y < 15 && m_boardTiles[X, Y] != null)
 				{
 					playedWord.Word += m_boardTiles[X, Y].Letter;
 					playedWord.Score += ScoreTilePlacement(m_boardTiles[X, Y], ref wordMultiplier);
@@ -1615,7 +1764,7 @@ namespace Scrabble
 				playedWord.Score += ScoreTilePlacement(playedTiles[tileIndex], ref wordMultiplier);
 				X++;
 				// Now check after the played tile as well.
-				while (X < 14 && m_boardTiles[X, Y] != null)
+				while (X < 15 && m_boardTiles[X, Y] != null)
 				{
 					playedWord.Word += m_boardTiles[X, Y].Letter;
 					playedWord.Score += ScoreTilePlacement(m_boardTiles[X, Y], ref wordMultiplier);
@@ -1696,7 +1845,9 @@ namespace Scrabble
 			}
 
 #if DEBUG
-			ComputerTextBlock.Text = playersLetters;
+			MessageTextBox.Text = playersLetters;
+			MessageTextBox.Visibility = Visibility.Visible;
+			m_messageDisplayTime = DateTime.Now;
 #endif
 
 			foreach (ExistingPlay existing in playableSpaces)
@@ -1799,7 +1950,7 @@ namespace Scrabble
 											int X = existing.StartTile.GridX;
 											int Y = existing.StartTile.GridY - indexOfExistingPlay + i;
 
-											if (X < 0 || X > 14 || m_boardTiles[X, Y] != null)
+											if (Y < 0 || Y > 14 || m_boardTiles[X, Y] != null)
 											{
 												wordFits = false;
 												break;
@@ -1818,7 +1969,7 @@ namespace Scrabble
 												int X = existing.StartTile.GridX;
 												int Y = existing.StartTile.GridY + existing.ExistingLetters.Length - indexOfExistingPlay + i;
 
-												if (X < 0 || X > 14 || m_boardTiles[X, Y] != null)
+												if (Y < 0 || Y > 14 || m_boardTiles[X, Y] != null)
 												{
 													wordFits = false;
 													break;
@@ -1903,6 +2054,6 @@ namespace Scrabble
 			}
 
 			return true;
-		}		
+		}
 	}
 }

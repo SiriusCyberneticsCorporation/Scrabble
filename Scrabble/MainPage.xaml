@@ -40,7 +40,7 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
-            <Button x:Name="TestButton" Content="Test" HorizontalAlignment="Stretch" VerticalAlignment="Top" Foreground="#FF0A0909" Margin="0,35,0,0" Click="TestButton_Click" Grid.Column="1" Grid.Row="1" FontSize="22">
+            <Button x:Name="TestButton" Content="???" HorizontalAlignment="Stretch" VerticalAlignment="Top" Foreground="#FF0A0909" Margin="0,35,0,0" Click="TestButton_Click" Grid.Column="1" Grid.Row="1" FontSize="22">
                 <Button.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Gold"/>
@@ -48,7 +48,7 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
-            <Button x:Name="ResumeGameButton" Content="Resume Game" HorizontalAlignment="Stretch" VerticalAlignment="Top" Foreground="#FF0A0909" Margin="0,35,0,0" Click="ResumeGameButton_Click" Grid.Column="1" Grid.Row="1" FontSize="22">
+            <Button x:Name="ResumeGameButton" Content="???" HorizontalAlignment="Stretch" VerticalAlignment="Top" Foreground="#FF0A0909" Margin="0,35,0,0" Click="ResumeGameButton_Click" Grid.Column="1" Grid.Row="1" FontSize="22">
                 <Button.Background>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Gold"/>

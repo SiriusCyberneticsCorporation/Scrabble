@@ -5,7 +5,7 @@
     xmlns:local="using:Scrabble"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d" Loaded="GamePageRoot_Loaded" SizeChanged="GamePageRoot_SizeChanged">
+    mc:Ignorable="d" Loaded="GamePageRoot_Loaded" >
 
     <Grid x:Name="MainGrid" >
         <Grid.Background>
@@ -17,16 +17,16 @@
 
         <Grid.RowDefinitions>
             <RowDefinition Height="5*"/>
-            <RowDefinition Height="85*"/>
+            <RowDefinition x:Name="CentreRowDefinition" Height="85*"/>
             <RowDefinition Height="10*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20*"/>
-            <ColumnDefinition Width="60*"/>
+            <ColumnDefinition x:Name="CentreColumnDefinition" Width="60*"/>
             <ColumnDefinition Width="20*"/>
         </Grid.ColumnDefinitions>
 
-        <Image x:Name="ScrabbleBoard" AllowDrop="True" Margin="0,0,0,5" Source="Assets/ScrabbleBoardWithLetterPanelFlush.png" SizeChanged="ScrabbleBoard_SizeChanged" Loaded="ScrabbleBoard_Loaded" RenderTransformOrigin="0,0" Grid.Column="1" NineGrid="0" Grid.Row="1"/>
+        <Image x:Name="ScrabbleBoard" AllowDrop="True" Margin="0,0,0,5" Source="Assets/ScrabbleBoardWithLetterPanelFlushSmall.png" SizeChanged="ScrabbleBoard_SizeChanged" Loaded="ScrabbleBoard_Loaded" RenderTransformOrigin="0,0" Grid.Column="1" NineGrid="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
         <Viewbox Grid.ColumnSpan="3" HorizontalAlignment="Left">
             <TextBlock x:Name="pageTitle_Copy" Text="Scrabble" Margin="10,0,0,0" TextAlignment="Left" FontFamily="Times New Roman" Foreground="White" SelectionHighlightColor="{x:Null}"/>
@@ -34,8 +34,6 @@
         <Grid x:Name="MessageTextBoxGrid" Grid.Column="1" Margin="0,2">
             <TextBlock x:Name="MessageTextBox" Margin="0" TextWrapping="Wrap" Text="TextBlock" TextAlignment="Center" Foreground="#FFF9F4D5" FontSize="20" SelectionHighlightColor="{x:Null}"/>
         </Grid>
-        <ListView x:Name="ComputersWords" Margin="20" Grid.Row="1" Background="White" Foreground="#FF1B1515"/>
-        <ListView x:Name="PlayersWords" Margin="20" Grid.Row="1" Background="#FFFDFDFD" Foreground="#FF131111" Grid.Column="2"/>
 
         <Grid Grid.Row="2" Grid.ColumnSpan="3" >
             <Grid.ColumnDefinitions>
@@ -116,10 +114,26 @@
                     </LinearGradientBrush>
                 </Button.Background>
             </Button>
+            <Button x:Name="NewGameButton" Content="Start New game" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="#FF0A0909" Margin="0" Visibility="Collapsed" Padding="0" Click="NewGameButton_Click" Grid.Column="2" ClickMode="Press" FontSize="32">
+                <Button.Background>
+                    <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                        <GradientStop Color="#FF265D29"/>
+                        <GradientStop Color="#FF19B800" Offset="1"/>
+                    </LinearGradientBrush>
+                </Button.Background>
+            </Button>
         </Grid>
         <Viewbox Grid.Column="2"  >
-            <TextBlock x:Name="ComputerTextBlock" Margin="0" TextWrapping="Wrap" Text="TextBlock" Foreground="White"/>
+            <TextBlock x:Name="TileRemainingTextBlock" Margin="0" TextWrapping="Wrap" Text="TextBlock" Foreground="White"/>
         </Viewbox>
+
+        <Border Margin="20" Grid.Row="1" Background="#FFF9F9F9" >
+            <RichTextBlock x:Name="ComputersWords" Grid.Row="1" Foreground="Black" Margin="10"/>
+        </Border>
+        <Border Margin="20" Grid.Row="1" Grid.Column="2"  Background="#FFF9F9F9" >
+            <RichTextBlock x:Name="PlayersWords" Foreground="Black" Margin="10" />
+        </Border>
+        <ProgressRing x:Name="ComputerThinkingProgressRing" Grid.Column="1" HorizontalAlignment="Center" Margin="0" Grid.Row="1" VerticalAlignment="Center" Height="150" Width="150"/>
 
     </Grid>
 </Page>

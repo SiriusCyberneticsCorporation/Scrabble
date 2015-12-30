@@ -26,8 +26,14 @@ namespace Scrabble
 			GridY = -1;
 			TileStatus = eTileState.InBag;
 
-			string letterFile = string.Format("ms-appx:///Assets/{0}.png", Letter);
-			LetterImage.Source = new BitmapImage() { UriSource = new Uri(letterFile, UriKind.Absolute) };
-		}				
+			TileLetterTextBlock.Text = Letter;
+			LetterValueTextBlock.Text = LetterValue.ToString();
+		}
+
+		private void TileRectangle_SizeChanged(object sender, Windows.UI.Xaml.SizeChangedEventArgs e)
+		{
+			TileRectangle.RadiusX = TileRectangle.ActualWidth * 0.1;
+			TileRectangle.RadiusY = TileRectangle.RadiusX;
+		}
 	}
 }
