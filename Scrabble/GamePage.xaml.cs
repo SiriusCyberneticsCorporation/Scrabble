@@ -24,13 +24,16 @@ namespace Scrabble
 	/// </summary>
 	public sealed partial class GamePage : Page
 	{
+		private const int COLUMN_OFFSET = 1;
+		private const int ROW_OFFSET = 0;
+
+		private static Windows.UI.Color GRID_LINE_COLOUR = Windows.UI.Colors.Black;
+
 		private int m_playersScore = 0;
 		private int m_computersScore = 0;
 		private bool m_restartLastGame = false;
 		private bool m_computersWordFound = false;
 		private bool[,] m_boardSpaceFilled = new bool[15, 15];
-		private double m_tileSize = 15;
-		//private Gaddag m_gaddag = new Gaddag();
 		private Random m_randomiser = null;
 		private DateTime m_messageDisplayTime = DateTime.Now;
 		private DateTime m_gameStartTime = DateTime.Now;
@@ -180,9 +183,57 @@ namespace Scrabble
 			m_boardScores[0, 14] = eScrabbleScores.TripleWordValue;
 			m_boardScores[7, 14] = eScrabbleScores.TripleWordValue;
 			m_boardScores[14, 14] = eScrabbleScores.TripleWordValue;
-			//-------------------------------------------------------------------------------------
 
-			FillLetterBag();
+			for (int x = 0; x < 15; x++)
+			{
+				for (int y = 0; y < 15; y++)
+				{
+					Grid scoringCell = new Grid();
+					Viewbox ScoreTextViewBox = new Viewbox();
+					TextBlock scoreTextBlock = new TextBlock() { Margin = new Thickness(3) };
+
+					scoringCell.SetValue(Grid.ColumnProperty, x + COLUMN_OFFSET);
+					scoringCell.SetValue(Grid.RowProperty, y + ROW_OFFSET);
+					scoringCell.BorderBrush = new SolidColorBrush(GRID_LINE_COLOUR);
+					scoringCell.BorderThickness = new Thickness(0.5);
+
+					switch (m_boardScores[x, y])
+					{
+						case eScrabbleScores.LetterValue:
+							scoringCell.Background = new SolidColorBrush(Windows.UI.Colors.White);
+							break;
+						case eScrabbleScores.DoubleLetterValue:
+							scoreTextBlock.Text = "2L";
+							scoringCell.Background = new SolidColorBrush(Windows.UI.Colors.SkyBlue);
+							break;
+						case eScrabbleScores.DoubleWordValue:
+							scoreTextBlock.Text = "2W";
+							scoringCell.Background = new SolidColorBrush(Windows.UI.Colors.Salmon);
+							break;
+						case eScrabbleScores.TripleLetterValue:
+							scoreTextBlock.Text = "3L";
+							scoringCell.Background = new SolidColorBrush(Windows.UI.Colors.RoyalBlue);
+							break;
+						case eScrabbleScores.TripleWordValue:
+							scoreTextBlock.Text = "3W";
+							scoringCell.Background = new SolidColorBrush(Windows.UI.Colors.Red);
+							break;
+					}
+					ScoreTextViewBox.Child = scoreTextBlock;
+
+					scoringCell.Children.Add(ScoreTextViewBox);
+					ScrabbleGrid.Children.Add(scoringCell);
+				}
+			}
+
+			Grid panelCells = new Grid();
+			panelCells.SetValue(Grid.ColumnProperty, COLUMN_OFFSET + 4);
+			panelCells.SetValue(Grid.RowProperty, ROW_OFFSET + 15);
+			panelCells.SetValue(Grid.ColumnSpanProperty, 7);
+			panelCells.SetValue(Grid.RowSpanProperty, 1);
+			panelCells.Background = new SolidColorBrush(Windows.UI.Colors.Green);
+			ScrabbleGrid.Children.Add(panelCells);			
+			//-------------------------------------------------------------------------------------
 
 			ReadWords();
 		}
@@ -205,17 +256,8 @@ namespace Scrabble
 
 		private void GamePage_SizeChanged(object sender, SizeChangedEventArgs e)
 		{
-			if (ScrabbleBoard.Height > 0 && ScrabbleBoard.Width > 0)
+			if (ScrabbleGrid.Height > 0 && ScrabbleGrid.Width > 0)
 			{
-				// Decide whether height or width is the governing factor
-				if (CentreRowDefinition.ActualHeight / 16 > CentreColumnDefinition.ActualWidth / 15)    // Width
-				{
-					ScrabbleBoard.Height = 16 * CentreColumnDefinition.ActualWidth / 15;
-				}
-				else
-				{
-					ScrabbleBoard.Width = 15 * CentreRowDefinition.ActualHeight / 16;
-				}
 				ResizeTiles();
 			}
 		}
@@ -227,8 +269,6 @@ namespace Scrabble
 
 		private void ResizeTiles()
 		{
-			m_tileSize = ScrabbleBoard.ActualWidth / 15;
-
 			foreach (TileControl tile in m_playedTiles)
 			{
 				PlaceTileOnBoard(tile, tile.GridX, tile.GridY);
@@ -246,6 +286,7 @@ namespace Scrabble
 
 		#region Letter Dragging Functionality
 
+		
 		void DragLetter_ManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
 		{
 			if (m_turnState != eTurnState.PlayersTurn)
@@ -267,11 +308,13 @@ namespace Scrabble
 		{
 			if (!e.IsInertial)
 			{
+				double scaleX = ScrabbleGridViewBox.Child.DesiredSize.Width / ScrabbleGridViewBox.ActualWidth;
+				double scaleY = ScrabbleGridViewBox.Child.DesiredSize.Height / ScrabbleGridViewBox.ActualHeight;
 				TileControl draggedItem = (TileControl)sender;
 				TranslateTransform tileRenderTransform = draggedItem.RenderTransform as TranslateTransform;
 
-				tileRenderTransform.X += e.Delta.Translation.X;
-				tileRenderTransform.Y += e.Delta.Translation.Y;
+				tileRenderTransform.X += e.Delta.Translation.X * scaleX;
+				tileRenderTransform.Y += e.Delta.Translation.Y * scaleY;
 
 				if (m_previousImage != null)
 				{
@@ -288,19 +331,18 @@ namespace Scrabble
 
 		void DragLetter_ManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
 		{
+			double scaledTileSize = ScrabbleGridViewBox.ActualWidth / 16;
 			TileControl draggedItem = (TileControl)sender;
 
-			GeneralTransform imageTrasform = draggedItem.TransformToVisual(this);
+			GeneralTransform imageTrasform = draggedItem.TransformToVisual(ScrabbleGridViewBox);
 			Point imagePosition = imageTrasform.TransformPoint(new Point());
 			Point cursorPosition = imageTrasform.TransformPoint(e.Position);
-			Rect imageRect = imageTrasform.TransformBounds(new Rect(0, 0, draggedItem.ActualWidth, draggedItem.ActualHeight));
+			
+			Rect boardRect = new Rect(scaledTileSize * 0.5, 0, scaledTileSize * 15, scaledTileSize * 15);
+			Rect letterPanelRect = new Rect(scaledTileSize * 4.5, ScrabbleGridViewBox.ActualHeight - scaledTileSize, scaledTileSize * 7, scaledTileSize);
 
-			GeneralTransform boardTransform = ScrabbleBoard.TransformToVisual(this);
-			Rect boardRect = boardTransform.TransformBounds(new Rect(0, 0, ScrabbleBoard.ActualWidth, ScrabbleBoard.ActualHeight));
-			Rect letterPanelRect = boardTransform.TransformBounds(new Rect(m_tileSize * 4, ScrabbleBoard.ActualHeight - m_tileSize, m_tileSize * 7, m_tileSize));
-
-			bool droppedOnBoard = boardRect.Contains(cursorPosition) || boardRect.Contains(imagePosition);
-			bool droppedOnLetterPanel = letterPanelRect.Contains(cursorPosition) || letterPanelRect.Contains(imagePosition);
+			bool droppedOnBoard = boardRect.Contains(cursorPosition);// || boardRect.Contains(imagePosition);
+			bool droppedOnLetterPanel = letterPanelRect.Contains(cursorPosition);// || letterPanelRect.Contains(imagePosition);
 
 			if (droppedOnLetterPanel)
 			{
@@ -315,12 +357,12 @@ namespace Scrabble
 				}
 				else
 				{
-					placementX = imagePosition.X + (m_tileSize / 2);
+					placementX = imagePosition.X + (scaledTileSize / 2);
 				}
 
-				desiredX = placementX - ((placementX - letterPanelRect.X) % m_tileSize);
+				desiredX = placementX;// - ((placementX - letterPanelRect.X) % scaledTileSize);
 				desiredY = letterPanelRect.Y;
-				gridX = Math.Max(0, Math.Min(6, (int)((1 + desiredX - letterPanelRect.X) / m_tileSize)));
+				gridX = Math.Max(0, Math.Min(6, (int)((desiredX - letterPanelRect.X) / scaledTileSize)));
 
 				PlaceTileOnPanel(draggedItem, gridX);
 			}
@@ -332,7 +374,6 @@ namespace Scrabble
 				double desiredY = 0;
 				double placementX = 0;
 				double placementY = 0;
-				TranslateTransform tileRenderTransform = draggedItem.RenderTransform as TranslateTransform;
 
 				if (!e.IsInertial)
 				{
@@ -341,14 +382,14 @@ namespace Scrabble
 				}
 				else
 				{
-					placementX = imagePosition.X + (m_tileSize / 2);
-					placementY = imagePosition.Y + (m_tileSize / 2);
+					placementX = imagePosition.X + (scaledTileSize / 2);
+					placementY = imagePosition.Y + (scaledTileSize / 2);
 				}
 
-				desiredX = placementX - ((placementX - boardRect.X) % m_tileSize);
-				desiredY = placementY - ((placementY - boardRect.Y) % m_tileSize);
-				gridX = Math.Max(0, Math.Min(14, (int)((1 + desiredX - boardRect.X) / m_tileSize)));
-				gridY = Math.Max(0, Math.Min(14, (int)((1 + desiredY - boardRect.Y) / m_tileSize)));
+				desiredX = placementX;// - ((placementX - boardRect.X) % scaledTileSize);
+				desiredY = placementY;// - ((placementY - boardRect.Y) % scaledTileSize);
+				gridX = Math.Max(0, Math.Min(14, (int)((desiredX - boardRect.X) / scaledTileSize)));
+				gridY = Math.Max(0, Math.Min(14, (int)((desiredY - boardRect.Y) / scaledTileSize)));
 
 				foreach (TileControl tile in m_playedTiles)
 				{
@@ -379,8 +420,6 @@ namespace Scrabble
 
 		private void PlaceTileOnPanel(TileControl draggedItem, int gridX)
 		{
-			TranslateTransform tileRenderTransform = draggedItem.RenderTransform as TranslateTransform;
-
 			foreach (TileControl tile in m_panelTiles)
 			{
 				// If a tile is dropped on an existing tile...
@@ -397,8 +436,7 @@ namespace Scrabble
 								if (tileToMove.GridX > draggedItem.GridX && tileToMove.GridX <= tile.GridX)
 								{
 									tileToMove.GridX--;
-									TranslateTransform movingTileRenderTransform = tileToMove.RenderTransform as TranslateTransform;
-									movingTileRenderTransform.X -= m_tileSize;
+									tileToMove.SetValue(Grid.ColumnProperty, tileToMove.GridX + 4 + COLUMN_OFFSET);
 								}
 							}
 						}
@@ -410,8 +448,7 @@ namespace Scrabble
 								if (tileToMove.GridX < draggedItem.GridX && tileToMove.GridX >= tile.GridX)
 								{
 									tileToMove.GridX++;
-									TranslateTransform movingTileRenderTransform = tileToMove.RenderTransform as TranslateTransform;
-									movingTileRenderTransform.X += m_tileSize;
+									tileToMove.SetValue(Grid.ColumnProperty, tileToMove.GridX + 4 + COLUMN_OFFSET);
 								}
 							}
 						}
@@ -460,8 +497,7 @@ namespace Scrabble
 								if (tileToMove.GridX >= gridX && tileToMove.GridX < gapToRightAt)
 								{
 									tileToMove.GridX++;
-									TranslateTransform movingTileRenderTransform = tileToMove.RenderTransform as TranslateTransform;
-									movingTileRenderTransform.X += m_tileSize;
+									tileToMove.SetValue(Grid.ColumnProperty, tileToMove.GridX + 4 + COLUMN_OFFSET);
 								}
 							}
 						}
@@ -473,8 +509,7 @@ namespace Scrabble
 								if (tileToMove.GridX <= gridX && tileToMove.GridX > gapToLeftAt)
 								{
 									tileToMove.GridX--;
-									TranslateTransform movingTileRenderTransform = tileToMove.RenderTransform as TranslateTransform;
-									movingTileRenderTransform.X -= m_tileSize;
+									tileToMove.SetValue(Grid.ColumnProperty, tileToMove.GridX + 4 + COLUMN_OFFSET);
 								}
 							}
 						}
@@ -483,23 +518,20 @@ namespace Scrabble
 				}
 			}
 
-			GeneralTransform boardTransform = ScrabbleBoard.TransformToVisual(this);
-			Rect letterPanelRect = boardTransform.TransformBounds(new Rect(m_tileSize * 4, ScrabbleBoard.ActualHeight - m_tileSize, m_tileSize * 7, m_tileSize));
-			Point positionOfBoard = boardTransform.TransformPoint(new Point(0, 0));
-
-			tileRenderTransform.X = positionOfBoard.X + (m_tileSize * (gridX + 4));
-			tileRenderTransform.Y = positionOfBoard.Y + (m_tileSize * 15) + 1;
-
 			if (draggedItem.GridY != 16 && draggedItem.GridX >= 0 && draggedItem.GridY >= 0)
 			{
 				m_boardSpaceFilled[draggedItem.GridX, draggedItem.GridY] = false;
 			}
 
-			draggedItem.Width = m_tileSize * 0.95;
-			draggedItem.Height = m_tileSize * 0.95;
 			draggedItem.GridX = gridX;
 			draggedItem.GridY = 16;
+			draggedItem.SetValue(Grid.ColumnProperty, draggedItem.GridX + 4 + COLUMN_OFFSET);
+			draggedItem.SetValue(Grid.RowProperty, draggedItem.GridY + ROW_OFFSET);
 			draggedItem.Visibility = Visibility.Visible;
+
+			TranslateTransform tileRenderTransform = draggedItem.RenderTransform as TranslateTransform;
+			tileRenderTransform.X = 0;
+			tileRenderTransform.Y = 0;
 
 			if (draggedItem.TileStatus == eTileState.ComposingNewWord)
 			{
@@ -512,18 +544,10 @@ namespace Scrabble
 
 		private void PlaceTileOnBoard(TileControl draggedItem, int gridX, int gridY)
 		{
-			if(ScrabbleBoard.ActualWidth < 10 || ScrabbleBoard.ActualHeight < 10)
+			if(ScrabbleGridViewBox.ActualWidth < 10 || ScrabbleGridViewBox.ActualHeight < 10)
 			{
 				return;
 			}
-			TranslateTransform tileRenderTransform = draggedItem.RenderTransform as TranslateTransform;
-
-			GeneralTransform boardTransform = ScrabbleBoard.TransformToVisual(this);
-			Rect boardRect = boardTransform.TransformBounds(new Rect(0, 0, ScrabbleBoard.ActualWidth, ScrabbleBoard.ActualHeight));
-			Point positionOfBoard = boardTransform.TransformPoint(new Point(0, 0));
-
-			tileRenderTransform.X = positionOfBoard.X + (m_tileSize * gridX) + m_tileSize * 0.015;
-			tileRenderTransform.Y = positionOfBoard.Y + (m_tileSize * gridY) + m_tileSize * 0.015;
 
 			if (draggedItem.GridY != 16 && draggedItem.GridX >= 0 && draggedItem.GridY >= 0)
 			{
@@ -531,11 +555,15 @@ namespace Scrabble
 			}
 
 			m_boardSpaceFilled[gridX, gridY] = true;
-			draggedItem.Width = m_tileSize * 0.95;
-			draggedItem.Height = m_tileSize * 0.95;
 			draggedItem.GridX = gridX;
 			draggedItem.GridY = gridY;
+			draggedItem.SetValue(Grid.ColumnProperty, draggedItem.GridX + COLUMN_OFFSET);
+			draggedItem.SetValue(Grid.RowProperty, draggedItem.GridY + ROW_OFFSET);
 			draggedItem.Visibility = Visibility.Visible;
+
+			TranslateTransform tileRenderTransform = draggedItem.RenderTransform as TranslateTransform;
+			tileRenderTransform.X = 0;
+			tileRenderTransform.Y = 0;
 
 			if (draggedItem.TileStatus == eTileState.OnPlayerPanel)
 			{
@@ -547,8 +575,9 @@ namespace Scrabble
 
 		private void FindNearestBoardSpace(double placementX, double placementY, ref int gridX, ref int gridY)
 		{
-			bool left = (placementX % m_tileSize) < (m_tileSize / 2);
-			bool up = (placementY % m_tileSize) < (m_tileSize / 2);
+			double scaledTileSize = ScrabbleGridViewBox.ActualWidth / 16;
+			bool left = (placementX % scaledTileSize) < (scaledTileSize / 2);
+			bool up = (placementY % scaledTileSize) < (scaledTileSize / 2);
 
 			// Move up one if possible.
 			if (up && gridY > 0 && !m_boardSpaceFilled[gridX, gridY - 1])
@@ -672,48 +701,16 @@ namespace Scrabble
 			PlayersWords.Blocks.Clear();
 			ComputersWords.Blocks.Clear();
 
-			foreach (TileControl tile in m_currentWordTiles)
-			{
-				tile.Visibility = Visibility.Collapsed;
-				tile.TileStatus = eTileState.InBag;
-				m_letterBag.Add(tile);
-			}
 			m_currentWordTiles.Clear();
-
-			foreach (TileControl tile in m_playedTiles)
-			{
-				tile.Visibility = Visibility.Collapsed;
-				tile.TileStatus = eTileState.InBag;
-				m_letterBag.Add(tile);
-			}
 			m_playedTiles.Clear();
-
-			foreach (TileControl tile in m_panelTiles)
-			{
-				tile.Visibility = Visibility.Collapsed;
-				tile.TileStatus = eTileState.InBag;
-				m_letterBag.Add(tile);
-			}
 			m_panelTiles.Clear();
-
-			foreach (TileControl tile in m_computersTiles)
-			{
-				tile.Visibility = Visibility.Collapsed;
-				tile.TileStatus = eTileState.InBag;
-				m_letterBag.Add(tile);
-			}
 			m_computersTiles.Clear();
 
 			for (int x = 0; x < 15; x++)
 			{
 				for (int y = 0; y < 15; y++)
 				{
-					if (m_boardTiles[x, y] != null)
-					{
-						m_boardTiles[x, y].TileStatus = eTileState.InBag;
-						m_letterBag.Add(m_boardTiles[x, y]);
-						m_boardTiles[x, y] = null;
-					}
+					m_boardTiles[x, y] = null;
 					m_boardSpaceFilled[x, y] = false;
 				}
 			}
@@ -724,8 +721,6 @@ namespace Scrabble
 		private void ShuffleLettersButton_Click(object sender, RoutedEventArgs e)
 		{
 			List<int> positions = new List<int>() { 0, 1, 2, 3, 4, 5, 6 };
-			GeneralTransform boardTransform = ScrabbleBoard.TransformToVisual(this);
-			Point positionOfBoard = boardTransform.TransformPoint(new Point(0, 0));
 
 			foreach (TileControl tile in m_panelTiles)
 			{
@@ -895,9 +890,11 @@ namespace Scrabble
 					foreach (TileControl tile in m_currentWordTiles)
 					{
 						tile.TileStatus = eTileState.Played;
+						
 						tile.ManipulationStarting -= DragLetter_ManipulationStarting;
 						tile.ManipulationDelta -= DragLetter_ManipulationDelta;
 						tile.ManipulationCompleted -= DragLetter_ManipulationCompleted;
+						
 						m_playedTiles.Add(tile);
 						m_boardTiles[tile.GridX, tile.GridY] = tile;
 					}
@@ -916,12 +913,14 @@ namespace Scrabble
 							TileControl tile = m_letterBag[nextLetter];
 
 							tile.TileStatus = eTileState.OnPlayerPanel;
+							
 							tile.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
 							tile.ManipulationStarting += DragLetter_ManipulationStarting;
 							tile.ManipulationDelta += DragLetter_ManipulationDelta;
 							tile.ManipulationCompleted += DragLetter_ManipulationCompleted;
+							
 
-							PlaceTileOnPanel(tile, i / 2);
+							PlaceTileOnPanel(tile, i);
 
 							m_panelTiles.Add(tile);
 
@@ -1336,9 +1335,9 @@ namespace Scrabble
 					TileControl tile = new TileControl(scrabbleLetter.Letter, scrabbleLetter.LetterValue);
 					tile.Visibility = Visibility.Collapsed;
 					tile.RenderTransform = new TranslateTransform();
-					tile.HorizontalAlignment = HorizontalAlignment.Left;
-					tile.VerticalAlignment = VerticalAlignment.Top;
-					MainGrid.Children.Add(tile);
+					tile.HorizontalAlignment = HorizontalAlignment.Stretch;
+					tile.VerticalAlignment = VerticalAlignment.Stretch;
+					ScrabbleGrid.Children.Add(tile);
 
 					m_letterBag.Add(tile);
 				}
@@ -1347,6 +1346,8 @@ namespace Scrabble
 
 		private void StartGame()
 		{
+			FillLetterBag();
+
 			for (int i = 0; i < 7; i++)
 			{
 				int nextLetter = m_randomiser.Next(m_letterBag.Count - 1);
@@ -1365,12 +1366,14 @@ namespace Scrabble
 
 				TileControl tile = m_letterBag[nextLetter];
 				tile.TileStatus = eTileState.OnPlayerPanel;
+				
 				tile.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
 				tile.ManipulationStarting += DragLetter_ManipulationStarting;
 				tile.ManipulationDelta += DragLetter_ManipulationDelta;
 				tile.ManipulationCompleted += DragLetter_ManipulationCompleted;
+				
 
-				PlaceTileOnPanel(tile, i / 2);
+				PlaceTileOnPanel(tile, i);
 
 				m_panelTiles.Add(tile);
 

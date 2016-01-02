@@ -11,16 +11,16 @@
 
     <Grid >
         <Grid.RowDefinitions>
-            <RowDefinition Height="70*"/>
-            <RowDefinition Height="25*"/>
+            <RowDefinition Height="65*"/>
+            <RowDefinition Height="30*"/>
             <RowDefinition Height="5*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="70*"/>
-            <ColumnDefinition Width="25*"/>
+            <ColumnDefinition Width="65*"/>
+            <ColumnDefinition Width="30*"/>
             <ColumnDefinition Width="5*"/>
         </Grid.ColumnDefinitions>
-        <Rectangle x:Name="TileRectangle" RadiusX="20" RadiusY="20" Grid.RowSpan="3" Grid.ColumnSpan="3" Fill="#FFF7CD5E" SizeChanged="TileRectangle_SizeChanged">
+        <Rectangle x:Name="TileRectangle" RadiusX="20" RadiusY="20" Grid.RowSpan="3" Grid.ColumnSpan="3" Fill="#FFF7CD5E" SizeChanged="TileRectangle_SizeChanged" StrokeThickness="0.5">
             <Rectangle.Stroke>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0,0.5">
                     <GradientStop Color="Black" Offset="0"/>
@@ -28,11 +28,11 @@
                 </LinearGradientBrush>
             </Rectangle.Stroke>
         </Rectangle>
-        <Viewbox Grid.RowSpan="3" Grid.ColumnSpan="3">
-            <TextBlock x:Name="TileLetterTextBlock" Text="A" LineHeight="18" LineStackingStrategy="BlockLineHeight" />
+        <Viewbox Grid.RowSpan="2" Grid.ColumnSpan="3">
+            <TextBlock x:Name="TileLetterTextBlock" Text="A" Foreground="Black" />
         </Viewbox>
         <Viewbox Grid.Column="1" Grid.Row="1" >
-            <TextBlock x:Name="LetterValueTextBlock" Text="1" Foreground="Black" FontSize="20"/>
+            <TextBlock x:Name="LetterValueTextBlock" Text="1" Foreground="Black"/>
         </Viewbox>
     </Grid>
 </UserControl>
